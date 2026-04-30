@@ -2,7 +2,10 @@
 
 declare(strict_types=1);
 
-use Yishaq\Server\Core\AppContext;
+use Yishaq\Server\Controllers\Admin\ApprovalController;
+use Yishaq\Server\Controllers\Admin\DashboardController;
+use Yishaq\Server\Controllers\Admin\MemberController;
+use Yishaq\Server\Controllers\Admin\ProfileController;
 use Yishaq\Server\Core\Request;
 use Yishaq\Server\Core\Response;
 use Yishaq\Server\Middleware\AuthMiddleware;
@@ -17,192 +20,66 @@ if (!function_exists('adminRequireAuth')) {
 }
 
 $router->get('/api/admin/dashboard', static function (Request $request, Response $response): void {
-    adminRequireAuth($request);
-    $db = AppContext::database();
-
-    $stats = $db->first(
-        "SELECT
-            COUNT(CASE WHEN role = 'member' THEN 1 END) AS total_members,
-            COUNT(CASE WHEN role = 'member' AND account_status = 'active' THEN 1 END) AS active_members,
-            COUNT(CASE WHEN role = 'member' AND account_status = 'pending_approval' THEN 1 END) AS pending_members,
-            COUNT(CASE WHEN role = 'member' AND account_status = 'active' THEN 1 END) AS approved_members,
-            COUNT(CASE WHEN role = 'member' AND account_status = 'rejected' THEN 1 END) AS rejected_members
-         FROM users"
-    ) ?? [];
-
-    $revenue = $db->first(
-        "SELECT COALESCE(SUM(plan_cost), 0) AS total_revenue
-         FROM memberships
-         WHERE payment_status = 'paid'"
-    ) ?? [];
-
-    $monthly = $db->select(
-        "SELECT
-            DATE_FORMAT(created_at, '%Y-%m') AS ym,
-            COUNT(*) AS joined
-         FROM users
-         WHERE role = 'member' AND created_at >= DATE_SUB(CURDATE(), INTERVAL 5 MONTH)
-         GROUP BY ym"
-    );
-
-    $expiredMonthly = $db->select(
-        "SELECT
-            DATE_FORMAT(plan_expires_at, '%Y-%m') AS ym,
-            COUNT(*) AS expired_count
-         FROM memberships
-         WHERE plan_expires_at IS NOT NULL
-           AND plan_expires_at >= DATE_SUB(CURDATE(), INTERVAL 5 MONTH)
-           AND plan_expires_at <= NOW()
-         GROUP BY ym"
-    );
-
-    $pendingMonthly = $db->select(
-        "SELECT
-            DATE_FORMAT(created_at, '%Y-%m') AS ym,
-            COUNT(*) AS pending_count
-         FROM users
-         WHERE role = 'member'
-           AND account_status = 'pending_approval'
-           AND created_at >= DATE_SUB(CURDATE(), INTERVAL 5 MONTH)
-         GROUP BY ym"
-    );
-
-    $labels = [];
-    $joined = [];
-    $expired = [];
-    $pending = [];
-    for ($i = 5; $i >= 0; $i--) {
-        $monthDate = strtotime("-{$i} months");
-        $ym = date('Y-m', $monthDate);
-        $labels[] = date('M', $monthDate);
-        $joined[] = 0;
-        $expired[] = 0;
-        $pending[] = 0;
-
-        foreach ($monthly as $row) {
-            if (($row['ym'] ?? '') === $ym) {
-                $joined[count($joined) - 1] = (int) ($row['joined'] ?? 0);
-                break;
-            }
-        }
-        foreach ($expiredMonthly as $row) {
-            if (($row['ym'] ?? '') === $ym) {
-                $expired[count($expired) - 1] = (int) ($row['expired_count'] ?? 0);
-                break;
-            }
-        }
-        foreach ($pendingMonthly as $row) {
-            if (($row['ym'] ?? '') === $ym) {
-                $pending[count($pending) - 1] = (int) ($row['pending_count'] ?? 0);
-                break;
-            }
-        }
-    }
-
-    $response->json(
-        [
-            'success' => true,
-            'message' => 'Admin dashboard data fetched.',
-            'data' => [
-                'stats' => [
-                    'total_members' => (int) ($stats['total_members'] ?? 0),
-                    'active_members' => (int) ($stats['active_members'] ?? 0),
-                    'pending_members' => (int) ($stats['pending_members'] ?? 0),
-                    'approved_members' => (int) ($stats['approved_members'] ?? 0),
-                    'rejected_members' => (int) ($stats['rejected_members'] ?? 0),
-                    'total_revenue' => (float) ($revenue['total_revenue'] ?? 0),
-                ],
-                'chart' => [
-                    'labels' => $labels,
-                    'joined' => $joined,
-                    'expired' => $expired,
-                    'pending' => $pending,
-                ],
-            ],
-        ],
-        200
-    );
+    $user = adminRequireAuth($request);
+    (new DashboardController())->show($request, $response, $user);
 });
 
 $router->get('/api/admin/members', static function (Request $request, Response $response): void {
-    adminRequireAuth($request);
-    $db = AppContext::database();
+    $user = adminRequireAuth($request);
+    (new MemberController())->index($request, $response, $user);
+});
 
-    $page = max(1, (int) $request->query('page', 1));
-    $perPage = max(1, min(100, (int) $request->query('per_page', 8)));
-    $offset = ($page - 1) * $perPage;
-    $search = trim((string) $request->query('search', ''));
-    $status = strtolower(trim((string) $request->query('status', '')));
-    $memberType = strtolower(trim((string) $request->query('member_type', '')));
+$router->post('/api/admin/members', static function (Request $request, Response $response): void {
+    $user = adminRequireAuth($request);
+    (new MemberController())->create($request, $response, $user);
+});
 
-    $where = ["u.role = 'member'"];
-    $bindings = [];
+$router->put('/api/admin/members/{id}', static function (Request $request, Response $response, array $params): void {
+    $user = adminRequireAuth($request);
+    (new MemberController())->update($request, $response, $user, $params);
+});
 
-    if ($search !== '') {
-        $where[] = '(u.name LIKE :search OR u.email LIKE :search OR mp.member_id LIKE :search)';
-        $bindings['search'] = '%' . $search . '%';
-    }
+$router->patch('/api/admin/members/{id}/status', static function (Request $request, Response $response, array $params): void {
+    $user = adminRequireAuth($request);
+    (new MemberController())->updateStatus($request, $response, $user, $params);
+});
 
-    if ($status !== '') {
-        $normalized = $status === 'pendingapproval' ? 'pending_approval' : $status;
-        $where[] = 'u.account_status = :status';
-        $bindings['status'] = $normalized;
-    }
+$router->get('/api/admin/approvals', static function (Request $request, Response $response): void {
+    $user = adminRequireAuth($request);
+    (new ApprovalController())->index($request, $response, $user);
+});
 
-    if ($memberType !== '') {
-        $where[] = 'mp.member_type = :member_type';
-        $bindings['member_type'] = $memberType;
-    }
+$router->post('/api/admin/approvals/{id}/approve', static function (Request $request, Response $response, array $params): void {
+    $user = adminRequireAuth($request);
+    (new ApprovalController())->approve($request, $response, $user, $params);
+});
 
-    $whereSql = implode(' AND ', $where);
+$router->post('/api/admin/approvals/{id}/reject', static function (Request $request, Response $response, array $params): void {
+    $user = adminRequireAuth($request);
+    (new ApprovalController())->reject($request, $response, $user, $params);
+});
 
-    $countRow = $db->first(
-        "SELECT COUNT(*) AS total
-         FROM users u
-         LEFT JOIN member_profiles mp ON mp.user_id = u.id
-         WHERE {$whereSql}",
-        $bindings
-    ) ?? ['total' => 0];
-    $total = (int) ($countRow['total'] ?? 0);
-    $lastPage = max(1, (int) ceil($total / $perPage));
+$router->get('/api/admin/approvals/history', static function (Request $request, Response $response): void {
+    $user = adminRequireAuth($request);
+    (new ApprovalController())->history($request, $response, $user);
+});
 
-    $rows = $db->select(
-        "SELECT
-            u.id, u.name, u.email, u.phone, u.account_status, u.created_at,
-            mp.member_id, mp.member_type, mp.membership_type, mp.university_id, mp.department, mp.national_id, mp.address, mp.gender,
-            m.plan_start_at, m.plan_expires_at
-         FROM users u
-         LEFT JOIN member_profiles mp ON mp.user_id = u.id
-         LEFT JOIN memberships m ON m.id = (
-            SELECT m2.id FROM memberships m2 WHERE m2.user_id = u.id ORDER BY m2.id DESC LIMIT 1
-         )
-         WHERE {$whereSql}
-         ORDER BY u.id DESC
-         LIMIT {$perPage} OFFSET {$offset}",
-        $bindings
-    );
+$router->get('/api/admin/profile', static function (Request $request, Response $response): void {
+    $user = adminRequireAuth($request);
+    (new ProfileController())->show($request, $response, $user);
+});
 
-    $data = array_map(static function (array $row): array {
-        $row['member_profile'] = [
-            'membership_type' => $row['membership_type'] ?? null,
-            'member_type' => $row['member_type'] ?? null,
-            'membership_expiry_date' => $row['plan_expires_at'] ?? null,
-        ];
-        return $row;
-    }, $rows);
+$router->put('/api/admin/profile', static function (Request $request, Response $response): void {
+    $user = adminRequireAuth($request);
+    (new ProfileController())->update($request, $response, $user);
+});
 
-    $response->json(
-        [
-            'success' => true,
-            'message' => 'Members fetched.',
-            'data' => $data,
-            'meta' => [
-                'current_page' => $page,
-                'last_page' => $lastPage,
-                'total' => $total,
-                'per_page' => $perPage,
-            ],
-        ],
-        200
-    );
+$router->put('/api/admin/password', static function (Request $request, Response $response): void {
+    $user = adminRequireAuth($request);
+    (new ProfileController())->password($request, $response, $user);
+});
+
+$router->post('/api/admin/profile/avatar', static function (Request $request, Response $response): void {
+    $user = adminRequireAuth($request);
+    (new ProfileController())->avatar($request, $response, $user);
 });
