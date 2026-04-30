@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Yishaq\Server\Controllers;
 
 use RuntimeException;
+use Throwable;
 use Yishaq\Server\Contracts\Services\PaymentServiceInterface;
 use Yishaq\Server\Core\Exceptions\HttpException;
 use Yishaq\Server\Core\Request;
@@ -29,6 +30,8 @@ final class PaymentController extends BaseController
             throw $exception;
         } catch (RuntimeException $exception) {
             throw new HttpException($exception->getMessage(), 502);
+        } catch (Throwable $exception) {
+            throw new HttpException('Payment initialization failed: ' . $exception->getMessage(), 502);
         }
     }
 
@@ -45,6 +48,25 @@ final class PaymentController extends BaseController
             $message = $exception->getMessage();
             $status = str_contains(strtolower($message), 'not found') ? 404 : 422;
             throw new HttpException($message, $status);
+        } catch (Throwable $exception) {
+            throw new HttpException('Payment verification failed: ' . $exception->getMessage(), 422);
+        }
+    }
+
+    public function chapaCallback(Request $request, Response $response): void
+    {
+        $payload = $request->input();
+        $txRef = (string) ($payload['tx_ref'] ?? $payload['trx_ref'] ?? '');
+
+        try {
+            $result = $this->payments->verifyChapaPayment($txRef);
+            $this->ok($response, $result, 'Payment callback processed.');
+        } catch (HttpException $exception) {
+            throw $exception;
+        } catch (RuntimeException $exception) {
+            throw new HttpException($exception->getMessage(), 422);
+        } catch (Throwable $exception) {
+            throw new HttpException('Payment callback failed: ' . $exception->getMessage(), 422);
         }
     }
 }

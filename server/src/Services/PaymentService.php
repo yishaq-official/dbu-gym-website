@@ -53,13 +53,11 @@ final class PaymentService implements PaymentServiceInterface
         $currency = (string) AppContext::config()->get('chapa.currency', 'ETB');
         $txRef = $this->generateTxRef();
         $returnUrl = (string) ($payload['return_url'] ?? '');
-        $callbackUrl = (string) AppContext::config()->get(
-            'chapa.webhook_url',
-            (string) ($payload['callback_url'] ?? $returnUrl)
-        );
-        if ($callbackUrl === '') {
-            $callbackUrl = (string) ($payload['callback_url'] ?? $returnUrl);
+        if ($returnUrl === '') {
+            $frontendUrl = rtrim((string) AppContext::config()->get('services.frontend_url', ''), '/');
+            $returnUrl = $frontendUrl !== '' ? $frontendUrl . '/payments/chapa/return' : '';
         }
+        $callbackUrl = trim((string) AppContext::config()->get('chapa.webhook_url', ''));
 
         $registrationPayload = $payload;
         $registrationPayload['membership_type'] = $membershipType;
@@ -76,13 +74,13 @@ final class PaymentService implements PaymentServiceInterface
         ]);
 
         $names = $this->splitName((string) $payload['name']);
+        $phoneNumber = $this->chapaPhoneNumber((string) ($payload['phone'] ?? ''));
         $chapaPayload = [
             'amount' => (string) $amount,
             'currency' => $currency,
             'email' => strtolower(trim((string) $payload['email'])),
             'first_name' => $names['first_name'],
             'last_name' => $names['last_name'],
-            'phone_number' => (string) ($payload['phone'] ?? ''),
             'tx_ref' => $txRef,
             'customization' => [
                 'title' => 'DBU Gym Membership',
@@ -90,11 +88,15 @@ final class PaymentService implements PaymentServiceInterface
             ],
         ];
 
+        if ($phoneNumber !== '') {
+            $chapaPayload['phone_number'] = $phoneNumber;
+        }
+
         if ($returnUrl !== '') {
             $chapaPayload['return_url'] = $this->appendTxRef($returnUrl, $txRef);
         }
 
-        if ($callbackUrl !== '') {
+        if ($callbackUrl !== '' && filter_var($callbackUrl, FILTER_VALIDATE_URL)) {
             $chapaPayload['callback_url'] = $callbackUrl;
         }
 
@@ -234,6 +236,21 @@ final class PaymentService implements PaymentServiceInterface
             'first_name' => $first,
             'last_name' => $last,
         ];
+    }
+
+    private function chapaPhoneNumber(string $phone): string
+    {
+        $normalized = preg_replace('/\s+/', '', trim($phone)) ?? '';
+
+        if (preg_match('/^\+251([97]\d{8})$/', $normalized, $matches) === 1) {
+            return '0' . $matches[1];
+        }
+
+        if (preg_match('/^0[97]\d{8}$/', $normalized) === 1) {
+            return $normalized;
+        }
+
+        return '';
     }
 
     private function appendTxRef(string $url, string $txRef): string

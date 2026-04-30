@@ -84,3 +84,7 @@ $router->post('/api/payments/chapa/initialize', static function (Request $reques
 $router->get('/api/payments/chapa/verify/{tx_ref}', static function (Request $request, Response $response, array $params): void {
     (new PaymentController())->verifyChapa($request, $response, $params);
 });
+
+$router->get('/api/payments/chapa/callback', static function (Request $request, Response $response): void {
+    (new PaymentController())->chapaCallback($request, $response);
+});

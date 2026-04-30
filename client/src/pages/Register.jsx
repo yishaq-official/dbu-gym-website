@@ -215,7 +215,6 @@ export default function Register() {
         ...payload,
         membership_plan: payload.membership_type,
         return_url: `${origin}/payments/chapa/return`,
-        callback_url: `${origin}/payments/chapa/return`,
       })
 
       if (!response?.data?.checkout_url) {

@@ -77,16 +77,22 @@ final class ChapaClient
 
     private function streamRequest(string $method, string $url, string $secretKey, array $payload, int $timeout): array
     {
+        $headerLines = [
+            'Authorization: Bearer ' . $secretKey,
+            'Content-Type: application/json',
+            'Accept: application/json',
+        ];
+
         $options = [
             'http' => [
                 'method' => $method,
-                'header' => implode("\r\n", [
-                    'Authorization: Bearer ' . $secretKey,
-                    'Content-Type: application/json',
-                    'Accept: application/json',
-                ]),
+                'header' => implode("\r\n", $headerLines),
                 'ignore_errors' => true,
                 'timeout' => $timeout,
+            ],
+            'ssl' => [
+                'verify_peer' => true,
+                'verify_peer_name' => true,
             ],
         ];
 
@@ -95,11 +101,13 @@ final class ChapaClient
         }
 
         $context = stream_context_create($options);
-        $raw = file_get_contents($url, false, $context);
+        $raw = @file_get_contents($url, false, $context);
         $status = $this->statusFromHeaders($http_response_header ?? []);
 
         if ($raw === false) {
-            throw new RuntimeException('Chapa request failed.');
+            $error = error_get_last();
+            $message = is_array($error) ? (string) ($error['message'] ?? '') : '';
+            throw new RuntimeException('Chapa request failed' . ($message !== '' ? ': ' . $message : '.'));
         }
 
         return $this->decodeResponse($raw, $status);
@@ -113,10 +121,53 @@ final class ChapaClient
         }
 
         if ($status < 200 || $status >= 300) {
-            throw new RuntimeException((string) ($decoded['message'] ?? 'Chapa request failed.'));
+            throw new RuntimeException($this->responseMessage($decoded));
         }
 
         return $decoded;
+    }
+
+    private function responseMessage(array $decoded): string
+    {
+        foreach (['message', 'error', 'errors'] as $key) {
+            if (!array_key_exists($key, $decoded)) {
+                continue;
+            }
+
+            $message = $this->stringifyMessage($decoded[$key]);
+            if ($message !== '') {
+                return $message;
+            }
+        }
+
+        return 'Chapa request failed.';
+    }
+
+    private function stringifyMessage(mixed $value): string
+    {
+        if (is_string($value)) {
+            return trim($value);
+        }
+
+        if (is_scalar($value)) {
+            return trim((string) $value);
+        }
+
+        if (!is_array($value)) {
+            return '';
+        }
+
+        $parts = [];
+        foreach ($value as $key => $item) {
+            $itemMessage = $this->stringifyMessage($item);
+            if ($itemMessage === '') {
+                continue;
+            }
+
+            $parts[] = is_string($key) ? $key . ': ' . $itemMessage : $itemMessage;
+        }
+
+        return implode('; ', $parts);
     }
 
     private function statusFromHeaders(array $headers): int
