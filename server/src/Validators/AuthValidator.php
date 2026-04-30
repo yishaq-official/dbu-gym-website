@@ -118,7 +118,7 @@ final class AuthValidator extends BaseValidator
         );
 
         if ($settings && (int) $settings['password_special_chars'] === 1) {
-            if ($password !== '' && !preg_match('/[!@#$%^&*()_+\-=\[\]{};\':"\\|,.<>\/?]/', $password)) {
+            if ($password !== '' && !preg_match('/[!@#$%^&*()_+\\-=\\[\\]{};\':"\\\\|,.<>\\/?]/', $password)) {
                 $errors['password'] = 'Password must contain at least one special character.';
             }
         }
