@@ -315,6 +315,10 @@ ON DUPLICATE KEY UPDATE
   `admin_role` = VALUES(`admin_role`),
   `updated_at` = NOW();
 
+-- Add login attempt tracking fields
+ALTER TABLE `users` ADD COLUMN `login_attempts` TINYINT UNSIGNED NOT NULL DEFAULT 0 AFTER `last_login_at`;
+ALTER TABLE `users` ADD COLUMN `lockout_until` TIMESTAMP NULL AFTER `login_attempts`;
+
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

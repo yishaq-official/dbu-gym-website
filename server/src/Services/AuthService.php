@@ -119,9 +119,22 @@ final class AuthService implements AuthServiceInterface
             throw new RuntimeException('Invalid credentials.');
         }
 
+        // Check if account is locked due to too many failed attempts
+        if (isset($user['lockout_until']) && $user['lockout_until'] !== null) {
+            $lockoutTime = strtotime((string) $user['lockout_until']);
+            if ($lockoutTime > time()) {
+                throw new RuntimeException('Account is temporarily locked due to too many failed login attempts.');
+            }
+        }
+
         if (!password_verify($password, (string) ($user['password'] ?? ''))) {
+            // Increment failed login attempts
+            $this->incrementLoginAttempts((int) $user['id']);
             throw new RuntimeException('Invalid credentials.');
         }
+
+        // Reset login attempts on successful login
+        $this->resetLoginAttempts((int) $user['id']);
 
         $userId = (int) $user['id'];
         $this->users->updateLastLogin($userId);
@@ -327,5 +340,42 @@ final class AuthService implements AuthServiceInterface
         $random = random_int(1000, 9999);
 
         return sprintf('%s-%s-%d', $prefix, $year, $random);
+    }
+
+    private function incrementLoginAttempts(int $userId): void
+    {
+        $db = AppContext::database();
+
+        // Get current attempts and max attempts from settings
+        $user = $db->first("SELECT login_attempts FROM users WHERE id = ?", [$userId]);
+        $settings = $db->first("SELECT max_login_attempts FROM system_settings WHERE id = 1 LIMIT 1");
+
+        $currentAttempts = (int) ($user['login_attempts'] ?? 0);
+        $maxAttempts = (int) ($settings['max_login_attempts'] ?? 3);
+
+        $newAttempts = $currentAttempts + 1;
+
+        if ($newAttempts >= $maxAttempts) {
+            // Lock account for 15 minutes
+            $lockoutUntil = date('Y-m-d H:i:s', time() + 900); // 15 minutes
+            $db->statement(
+                "UPDATE users SET login_attempts = ?, lockout_until = ? WHERE id = ?",
+                [$newAttempts, $lockoutUntil, $userId]
+            );
+        } else {
+            $db->statement(
+                "UPDATE users SET login_attempts = ? WHERE id = ?",
+                [$newAttempts, $userId]
+            );
+        }
+    }
+
+    private function resetLoginAttempts(int $userId): void
+    {
+        $db = AppContext::database();
+        $db->statement(
+            "UPDATE users SET login_attempts = 0, lockout_until = NULL WHERE id = ?",
+            [$userId]
+        );
     }
 }
