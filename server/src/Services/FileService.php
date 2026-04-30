@@ -39,9 +39,14 @@ final class FileService
             throw new RuntimeException('Uploaded file is invalid.');
         }
 
+        // Get max file size from settings (default 2MB)
+        $db = AppContext::database();
+        $settings = $db->first("SELECT * FROM system_settings WHERE id = 1 LIMIT 1");
+        $maxSize = ($settings && isset($settings['max_file_size'])) ? (int) $settings['max_file_size'] * 1024 * 1024 : 2 * 1024 * 1024;
+
         $size = (int) ($file['size'] ?? 0);
-        if ($size <= 0 || $size > 2 * 1024 * 1024) {
-            throw new RuntimeException('Image must be 2MB or smaller.');
+        if ($size <= 0 || $size > $maxSize) {
+            throw new RuntimeException('Image must be ' . ($maxSize / (1024 * 1024)) . 'MB or smaller.');
         }
 
         $mime = (string) (mime_content_type($tmpName) ?: '');
@@ -56,6 +61,24 @@ final class FileService
             throw new RuntimeException('Only JPG, PNG, and WEBP images are allowed.');
         }
 
+        // Additional security: check file content for malicious code
+        $fileContent = file_get_contents($tmpName);
+        if ($fileContent === false) {
+            throw new RuntimeException('Unable to read uploaded file.');
+        }
+
+        // Check for PHP or script tags in the file content
+        if (preg_match('/<\?php|<\?|script|eval|exec|system/i', $fileContent)) {
+            throw new RuntimeException('Uploaded file contains potentially malicious content.');
+        }
+
+        // Sanitize original filename
+        $originalName = (string) ($file['name'] ?? '');
+        $sanitizedName = preg_replace('/[^a-zA-Z0-9\-_\.]/', '_', $originalName);
+        if (strlen($sanitizedName) > 100) {
+            $sanitizedName = substr($sanitizedName, 0, 100);
+        }
+
         $basePath = dirname(__DIR__, 2);
         $relativeDir = trim($relativeDir, '/');
         $targetDir = $basePath . '/' . $relativeDir;
@@ -68,6 +91,9 @@ final class FileService
         if (!move_uploaded_file($tmpName, $targetPath)) {
             throw new RuntimeException('Unable to store uploaded image.');
         }
+
+        // Set proper permissions
+        chmod($targetPath, 0644);
 
         return $relativeDir . '/' . $filename;
     }

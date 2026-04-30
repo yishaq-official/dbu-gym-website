@@ -215,6 +215,7 @@ CREATE TABLE `system_settings` (
   `password_special_chars` TINYINT(1) NOT NULL DEFAULT 1,
   `session_timeout` SMALLINT UNSIGNED NOT NULL DEFAULT 30,
   `max_login_attempts` SMALLINT UNSIGNED NOT NULL DEFAULT 3,
+  `max_file_size` SMALLINT UNSIGNED NOT NULL DEFAULT 2,
   `email_notifications` TINYINT(1) NOT NULL DEFAULT 1,
   `sms_notifications` TINYINT(1) NOT NULL DEFAULT 0,
   `sender_email` VARCHAR(255) NOT NULL DEFAULT 'support@dbugym.com',
