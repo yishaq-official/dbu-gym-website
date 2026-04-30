@@ -10,14 +10,17 @@ use Yishaq\Server\Core\AppContext;
 use Yishaq\Server\Core\Request;
 use Yishaq\Server\Core\Response;
 use Yishaq\Server\Services\AdminService;
+use Yishaq\Server\Services\AuditService;
 
 final class MemberController extends BaseController
 {
     private AdminService $admin;
+    private AuditService $audit;
 
-    public function __construct(?AdminService $admin = null)
+    public function __construct(?AdminService $admin = null, ?AuditService $audit = null)
     {
         $this->admin = $admin ?? new AdminService();
+        $this->audit = $audit ?? new AuditService();
     }
 
     public function index(Request $request, Response $response, array $user): void

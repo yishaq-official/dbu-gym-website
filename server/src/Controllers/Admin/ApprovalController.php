@@ -9,17 +9,20 @@ use Yishaq\Server\Controllers\BaseController;
 use Yishaq\Server\Core\Request;
 use Yishaq\Server\Core\Response;
 use Yishaq\Server\Services\ApprovalService;
+use Yishaq\Server\Services\AuditService;
 use Yishaq\Server\Services\CsvService;
 
 final class ApprovalController extends BaseController
 {
     private ApprovalService $approvals;
     private CsvService $csv;
+    private AuditService $audit;
 
-    public function __construct(?ApprovalService $approvals = null, ?CsvService $csv = null)
+    public function __construct(?ApprovalService $approvals = null, ?CsvService $csv = null, ?AuditService $audit = null)
     {
         $this->approvals = $approvals ?? new ApprovalService();
         $this->csv = $csv ?? new CsvService();
+        $this->audit = $audit ?? new AuditService();
     }
 
     public function index(Request $request, Response $response, array $user): void
@@ -44,6 +47,10 @@ final class ApprovalController extends BaseController
 
         try {
             $this->approvals->approve($memberId, (int) $user['id'], $reason);
+            $this->audit->log('approve_member', (int) $user['id'], [
+                'member_id' => $memberId,
+                'reason' => $reason
+            ]);
             $this->ok($response, null, 'Member approved.');
         } catch (RuntimeException $exception) {
             $this->error($response, $exception->getMessage(), 422);
@@ -63,6 +70,10 @@ final class ApprovalController extends BaseController
 
         try {
             $this->approvals->reject($memberId, (int) $user['id'], $reason);
+            $this->audit->log('reject_member', (int) $user['id'], [
+                'member_id' => $memberId,
+                'reason' => $reason
+            ]);
             $this->ok($response, null, 'Member rejected.');
         } catch (RuntimeException $exception) {
             $this->error($response, $exception->getMessage(), 422);
@@ -85,5 +96,33 @@ final class ApprovalController extends BaseController
 
         $result = $this->approvals->getApprovalHistory($page, $perPage, $filters);
         $this->ok($response, $result, 'Approval history fetched.');
+    }
+
+    public function export(Request $request, Response $response, array $user): void
+    {
+        $data = $this->approvals->getPendingApprovals(1, 1000)['data'] ?? [];
+        $csv = $this->csv->exportApprovals($data);
+
+        $response->header('Content-Type', 'text/csv');
+        $response->header('Content-Disposition', 'attachment; filename="approvals.csv"');
+        $response->raw($csv);
+    }
+
+    public function exportHistory(Request $request, Response $response, array $user): void
+    {
+        $filters = [];
+        if ($request->query('action')) {
+            $filters['action'] = $request->query('action');
+        }
+        if ($request->query('user_id')) {
+            $filters['user_id'] = (int) $request->query('user_id');
+        }
+
+        $data = $this->approvals->getApprovalHistory(1, 1000, $filters)['data'] ?? [];
+        $csv = $this->csv->exportApprovalHistory($data);
+
+        $response->header('Content-Type', 'text/csv');
+        $response->header('Content-Disposition', 'attachment; filename="approval-history.csv"');
+        $response->raw($csv);
     }
 }
