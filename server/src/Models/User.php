@@ -78,4 +78,15 @@ final class User extends BaseModel
             ]
         );
     }
+
+    public function updatePasswordById(int $id, string $hashedPassword): int
+    {
+        return $this->db->statement(
+            "UPDATE {$this->table()} SET password = :password, updated_at = NOW() WHERE id = :id",
+            [
+                'id' => $id,
+                'password' => $hashedPassword,
+            ]
+        );
+    }
 }

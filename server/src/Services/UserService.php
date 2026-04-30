@@ -47,8 +47,23 @@ final class UserService
         $this->users->updateById($id, ['last_login_at' => date('Y-m-d H:i:s')]);
     }
 
+    public function updateProfile(int $id, array $payload): ?array
+    {
+        $attributes = array_intersect_key($payload, array_flip(['name', 'email', 'phone', 'avatar_path']));
+        if ($attributes !== []) {
+            $this->users->updateById($id, $attributes);
+        }
+
+        return $this->users->findById($id);
+    }
+
     public function updatePasswordByEmail(string $email, string $hashedPassword): void
     {
         $this->users->updatePasswordByEmail($email, $hashedPassword);
+    }
+
+    public function updatePasswordById(int $id, string $hashedPassword): void
+    {
+        $this->users->updatePasswordById($id, $hashedPassword);
     }
 }

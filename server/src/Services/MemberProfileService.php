@@ -27,4 +27,10 @@ final class MemberProfileService
         // Return via user_id since that's the primary lookup pattern in this app.
         return $this->profiles->findByUserId((int) $payload['user_id']) ?? ['id' => $id];
     }
+
+    public function updateByUserId(int $userId, array $payload): ?array
+    {
+        $this->profiles->updateByUserId($userId, $payload);
+        return $this->profiles->findByUserId($userId);
+    }
 }

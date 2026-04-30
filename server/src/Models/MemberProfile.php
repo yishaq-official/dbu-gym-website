@@ -45,4 +45,42 @@ final class MemberProfile extends BaseModel
 
         return (int) $this->db->pdo()->lastInsertId();
     }
+
+    public function updateByUserId(int $userId, array $attributes): int
+    {
+        if ($attributes === []) {
+            return 0;
+        }
+
+        $allowed = [
+            'gender',
+            'membership_type',
+            'university_id',
+            'department',
+            'national_id',
+            'address',
+            'date_of_birth',
+            'emergency_contact_name',
+            'emergency_contact_phone',
+        ];
+        $attributes = array_intersect_key($attributes, array_flip($allowed));
+        if ($attributes === []) {
+            return 0;
+        }
+
+        $setClauses = [];
+        $bindings = ['user_id' => $userId];
+
+        foreach ($attributes as $column => $value) {
+            $setClauses[] = "{$column} = :{$column}";
+            $bindings[$column] = $value;
+        }
+
+        return $this->db->statement(
+            "UPDATE {$this->table()}
+             SET " . implode(', ', $setClauses) . ", updated_at = NOW()
+             WHERE user_id = :user_id",
+            $bindings
+        );
+    }
 }
