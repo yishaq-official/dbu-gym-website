@@ -10,16 +10,19 @@ use Yishaq\Server\Core\Request;
 use Yishaq\Server\Core\Response;
 use Yishaq\Server\Services\UserService;
 use Yishaq\Server\Services\FileService;
+use Yishaq\Server\Services\AuditService;
 
 final class ProfileController extends BaseController
 {
     private UserService $users;
     private FileService $files;
+    private AuditService $audit;
 
-    public function __construct(?UserService $users = null, ?FileService $files = null)
+    public function __construct(?UserService $users = null, ?FileService $files = null, ?AuditService $audit = null)
     {
         $this->users = $users ?? new UserService();
         $this->files = $files ?? new FileService();
+        $this->audit = $audit ?? new AuditService();
     }
 
     public function show(Request $request, Response $response, array $user): void
