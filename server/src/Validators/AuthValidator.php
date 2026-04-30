@@ -93,6 +93,9 @@ final class AuthValidator extends BaseValidator
             $errors['password_confirmation'] = 'Password confirmation does not match.';
         }
 
+        return $errors;
+    }
+
     public function validatePassword(array $payload): array
     {
         $errors = [];
