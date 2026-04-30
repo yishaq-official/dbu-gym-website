@@ -65,6 +65,16 @@ $router->get('/api/admin/approvals/history', static function (Request $request, 
     (new ApprovalController())->history($request, $response, $user);
 });
 
+$router->get('/api/admin/approvals/export', static function (Request $request, Response $response): void {
+    $user = adminRequireAuth($request);
+    (new ApprovalController())->export($request, $response, $user);
+});
+
+$router->get('/api/admin/approvals/history/export', static function (Request $request, Response $response): void {
+    $user = adminRequireAuth($request);
+    (new ApprovalController())->exportHistory($request, $response, $user);
+});
+
 $router->get('/api/admin/profile', static function (Request $request, Response $response): void {
     $user = adminRequireAuth($request);
     (new ProfileController())->show($request, $response, $user);

@@ -6,6 +6,7 @@ namespace Yishaq\Server\Controllers\Admin;
 
 use RuntimeException;
 use Yishaq\Server\Controllers\BaseController;
+use Yishaq\Server\Core\AppContext;
 use Yishaq\Server\Core\Request;
 use Yishaq\Server\Core\Response;
 use Yishaq\Server\Services\UserService;
@@ -46,7 +47,7 @@ final class ProfileController extends BaseController
         $payload = $request->json();
 
         // Get password settings from system settings
-        $settings = \Yishaq\Server\Core\AppContext::database()->first(
+        $settings = AppContext::database()->first(
             "SELECT password_min_length FROM system_settings WHERE id = 1 LIMIT 1"
         );
         $minLength = $settings ? (int) $settings['password_min_length'] : 8;
@@ -105,7 +106,7 @@ final class ProfileController extends BaseController
 
     private function assetUrl(string $path): string
     {
-        $appUrl = rtrim((string) \Yishaq\Server\Core\AppContext::config()->get('app.url', ''), '/');
+        $appUrl = rtrim((string) AppContext::config()->get('app.url', ''), '/');
         return $appUrl !== '' ? $appUrl . '/' . ltrim($path, '/') : '/' . ltrim($path, '/');
     }
 }
