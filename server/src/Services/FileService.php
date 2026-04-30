@@ -86,14 +86,18 @@ final class FileService
             throw new RuntimeException('Unable to prepare upload directory.');
         }
 
+        if (!is_dir($targetDir) || !is_writable($targetDir)) {
+            throw new RuntimeException('Unable to prepare upload directory.');
+        }
+
         $filename = bin2hex(random_bytes(16)) . '.' . $extension;
         $targetPath = $targetDir . '/' . $filename;
-        if (!move_uploaded_file($tmpName, $targetPath)) {
+        if (!@move_uploaded_file($tmpName, $targetPath)) {
             throw new RuntimeException('Unable to store uploaded image.');
         }
 
         // Set proper permissions
-        chmod($targetPath, 0644);
+        @chmod($targetPath, 0644);
 
         return $relativeDir . '/' . $filename;
     }

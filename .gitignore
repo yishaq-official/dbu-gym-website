@@ -2,3 +2,4 @@
 schema.txt
 .env
 server/.env
+sess_*
