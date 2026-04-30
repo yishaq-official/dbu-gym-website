@@ -93,6 +93,36 @@ final class AuthValidator extends BaseValidator
             $errors['password_confirmation'] = 'Password confirmation does not match.';
         }
 
+    public function validatePassword(array $payload): array
+    {
+        $errors = [];
+
+        foreach (['current_password' => 'Current password', 'password' => 'Password'] as $field => $label) {
+            $error = $this->required($payload, $field, $label);
+            if ($error !== null) {
+                $errors[$field] = $error;
+            }
+        }
+
+        $password = (string) ($payload['password'] ?? '');
+        if ($password !== '' && strlen($password) < $this->passwordMinLength) {
+            $errors['password'] = 'Password must be at least ' . $this->passwordMinLength . ' characters.';
+        }
+
+        // Get password settings from system settings
+        $settings = \Yishaq\Server\Core\AppContext::database()->first(
+            "SELECT password_special_chars FROM system_settings WHERE id = 1 LIMIT 1"
+        );
+
+        if ($settings && (int) $settings['password_special_chars'] === 1) {
+            if ($password !== '' && !preg_match('/[!@#$%^&*()_+\-=\[\]{};\':"\\|,.<>\/?]/', $password)) {
+                $errors['password'] = 'Password must contain at least one special character.';
+            }
+        }
+
+        if ($password !== (string) ($payload['password_confirmation'] ?? '')) {
+            $errors['password_confirmation'] = 'Password confirmation does not match.';
+        }
+
         return $errors;
     }
-}

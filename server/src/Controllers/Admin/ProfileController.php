@@ -45,7 +45,13 @@ final class ProfileController extends BaseController
     {
         $payload = $request->json();
 
-        $validator = new \Yishaq\Server\Validators\AuthValidator(max(8, (int) AppContext::config()->get('auth.password.min_length', 8)));
+        // Get password settings from system settings
+        $settings = \Yishaq\Server\Core\AppContext::database()->first(
+            "SELECT password_min_length FROM system_settings WHERE id = 1 LIMIT 1"
+        );
+        $minLength = $settings ? (int) $settings['password_min_length'] : 8;
+
+        $validator = new \Yishaq\Server\Validators\AuthValidator($minLength);
         $errors = $validator->validatePassword($payload);
         if ($errors !== []) {
             $this->error($response, implode(', ', $errors), 422);
