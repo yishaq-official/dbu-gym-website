@@ -1,0 +1,18 @@
+Options -Indexes
+
+RewriteEngine On
+
+# Preserve Authorization header for PHP under Apache/XAMPP
+RewriteCond %{HTTP:Authorization} .
+RewriteRule ^ - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+# Redirect trailing slash if not a directory
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.+)/$ /$1 [R=301,L]
+
+# If file/folder exists, serve normally
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# Route all requests to index.php
+RewriteRule ^ index.php [QSA,L]

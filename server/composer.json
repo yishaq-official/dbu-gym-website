@@ -1,0 +1,19 @@
+{
+    "name": "yishaq/server",
+    "require": {
+        "ext-json": "*",
+        "ext-pdo": "*",
+        "ext-pdo_mysql": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "Yishaq\\Server\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "yishaq-official",
+            "email": "yishaq.damtew@gmail.com"
+        }
+    ]
+}

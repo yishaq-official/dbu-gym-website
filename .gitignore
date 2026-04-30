@@ -1,0 +1,4 @@
+.codex
+schema.txt
+.env
+server/.env
