@@ -140,6 +140,10 @@ final class MemberController extends BaseController
 
         try {
             $this->admin->updateMemberStatus($memberId, $status);
+            $this->audit->log('update_member_status', (int) $user['id'], [
+                'member_id' => $memberId,
+                'new_status' => $status
+            ]);
             $this->ok($response, null, 'Member status updated.');
         } catch (RuntimeException $exception) {
             $this->error($response, $exception->getMessage(), 422);

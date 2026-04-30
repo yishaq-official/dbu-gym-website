@@ -11,16 +11,19 @@ use Yishaq\Server\Core\Request;
 use Yishaq\Server\Core\Response;
 use Yishaq\Server\Services\FileService;
 use Yishaq\Server\Services\SettingsService;
+use Yishaq\Server\Services\AuditService;
 
 final class SettingsController extends BaseController
 {
     private SettingsService $settings;
     private FileService $files;
+    private AuditService $audit;
 
-    public function __construct(?SettingsService $settings = null, ?FileService $files = null)
+    public function __construct(?SettingsService $settings = null, ?FileService $files = null, ?AuditService $audit = null)
     {
         $this->settings = $settings ?? new SettingsService();
         $this->files = $files ?? new FileService();
+        $this->audit = $audit ?? new AuditService();
     }
 
     public function show(Request $request, Response $response, array $user): void
@@ -36,6 +39,9 @@ final class SettingsController extends BaseController
     {
         $payload = $request->json();
         $updated = $this->settings->update($payload);
+        $this->audit->log('update_system_settings', (int) $user['id'], [
+            'updated_fields' => array_keys($payload)
+        ]);
         if ($updated && isset($updated['logo_path'])) {
             $updated['logo_url'] = $this->assetUrl($updated['logo_path']);
         }
@@ -54,6 +60,9 @@ final class SettingsController extends BaseController
         try {
             $path = $this->files->storeLogo($file);
             $updated = $this->settings->update(['logo_path' => $path]);
+            $this->audit->log('upload_system_logo', (int) $user['id'], [
+                'logo_path' => $path
+            ]);
             if ($updated && isset($updated['logo_path'])) {
                 $updated['logo_url'] = $this->assetUrl($updated['logo_path']);
             }
