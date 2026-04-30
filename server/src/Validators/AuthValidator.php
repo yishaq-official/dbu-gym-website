@@ -115,12 +115,13 @@ final class AuthValidator extends BaseValidator
         }
 
         // Get password settings from system settings
-        $settings = \Yishaq\Server\Core\AppContext::database()->first(
+        $settings = AppContext::database()->first(
             "SELECT password_special_chars FROM system_settings WHERE id = 1 LIMIT 1"
         );
 
         if ($settings && (int) $settings['password_special_chars'] === 1) {
-            if ($password !== '' && !preg_match('/[!@#$%^&*()_+\\-=\\[\\]{};\':"\\\\|,.<>\\/?]/', $password)) {
+            // Simplified check for special characters
+            if ($password !== '' && !preg_match('/[!@#$%^&*]/', $password)) {
                 $errors['password'] = 'Password must contain at least one special character.';
             }
         }
@@ -131,3 +132,4 @@ final class AuthValidator extends BaseValidator
 
         return $errors;
     }
+}
