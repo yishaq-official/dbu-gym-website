@@ -19,6 +19,11 @@ export default function ApprovalHistory() {
   const [sortBy, setSortBy] = useState('date_desc')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const historyRows = (data) => {
+    if (Array.isArray(data?.data?.data)) return data.data.data
+    if (Array.isArray(data?.data)) return data.data
+    return []
+  }
 
   const handleToggleTheme = () => {
     const next = theme === 'dark' ? 'light' : 'dark'
@@ -43,7 +48,7 @@ export default function ApprovalHistory() {
             to_date: toDate || undefined,
           })
           if (!active) return
-          const rows = (data?.data || []).map((user) => ({
+          const rows = historyRows(data).map((user) => ({
             id: user.id,
             name: user.name,
             email: user.email,

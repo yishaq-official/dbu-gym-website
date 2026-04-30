@@ -27,6 +27,11 @@ export default function Approvals() {
   const [rejectReason, setRejectReason] = useState('')
 
   const pendingCount = pending.length
+  const approvalRows = (data) => {
+    if (Array.isArray(data?.data?.data)) return data.data.data
+    if (Array.isArray(data?.data)) return data.data
+    return []
+  }
 
   const handleToggleTheme = () => {
     const next = theme === 'dark' ? 'light' : 'dark'
@@ -51,7 +56,7 @@ export default function Approvals() {
             to_date: toDate || undefined,
           })
           if (!active) return
-          const rows = (data?.data || []).map((user) => ({
+          const rows = approvalRows(data).map((user) => ({
             id: user.id,
             joinDate: user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A',
             fullName: user.name,
@@ -186,7 +191,7 @@ export default function Approvals() {
                   to_date: toDate || undefined,
                 })
                   .then((data) => {
-                    const rows = (data?.data || []).map((user) => ({
+                    const rows = approvalRows(data).map((user) => ({
                       id: user.id,
                       joinDate: user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A',
                       fullName: user.name,

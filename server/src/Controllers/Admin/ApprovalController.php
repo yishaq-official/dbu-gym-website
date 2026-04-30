@@ -27,11 +27,23 @@ final class ApprovalController extends BaseController
 
     public function index(Request $request, Response $response, array $user): void
     {
+        $status = strtolower(trim((string) $request->query('status', 'pending')));
         $page = max(1, (int) $request->query('page', 1));
         $perPage = max(1, min(100, (int) $request->query('per_page', 20)));
+        $filters = $this->filtersFromRequest($request);
 
-        $result = $this->approvals->getPendingApprovals($page, $perPage);
-        $this->ok($response, $result, 'Pending approvals fetched.');
+        if ($status === 'pending') {
+            $result = $this->approvals->getPendingApprovals($page, $perPage, $filters);
+            $this->ok($response, $result, 'Pending approvals fetched.');
+        } elseif ($status === 'all' || in_array($status, ['approved', 'rejected'], true)) {
+            if ($status !== 'all') {
+                $filters['action'] = $status;
+            }
+            $result = $this->approvals->getApprovalHistory($page, $perPage, $filters);
+            $this->ok($response, $result, ucfirst($status) . ' approvals fetched.');
+        } else {
+            $this->error($response, 'Invalid status filter.', 400);
+        }
     }
 
     public function approve(Request $request, Response $response, array $user, array $params): void
@@ -84,10 +96,14 @@ final class ApprovalController extends BaseController
     {
         $page = max(1, (int) $request->query('page', 1));
         $perPage = max(1, min(100, (int) $request->query('per_page', 20)));
-        $filters = [];
+        $filters = $this->filtersFromRequest($request);
 
         if ($request->query('action')) {
             $filters['action'] = $request->query('action');
+        }
+
+        if ($request->query('status') && $request->query('status') !== 'all') {
+            $filters['action'] = strtolower((string) $request->query('status'));
         }
 
         if ($request->query('user_id')) {
@@ -100,7 +116,7 @@ final class ApprovalController extends BaseController
 
     public function export(Request $request, Response $response, array $user): void
     {
-        $data = $this->approvals->getPendingApprovals(1, 1000)['data'] ?? [];
+        $data = $this->approvals->getPendingApprovals(1, 1000, $this->filtersFromRequest($request))['data'] ?? [];
         $csv = $this->csv->exportApprovals($data);
 
         $response->header('Content-Type', 'text/csv');
@@ -110,9 +126,12 @@ final class ApprovalController extends BaseController
 
     public function exportHistory(Request $request, Response $response, array $user): void
     {
-        $filters = [];
+        $filters = $this->filtersFromRequest($request);
         if ($request->query('action')) {
             $filters['action'] = $request->query('action');
+        }
+        if ($request->query('status') && $request->query('status') !== 'all') {
+            $filters['action'] = strtolower((string) $request->query('status'));
         }
         if ($request->query('user_id')) {
             $filters['user_id'] = (int) $request->query('user_id');
@@ -124,5 +143,19 @@ final class ApprovalController extends BaseController
         $response->header('Content-Type', 'text/csv');
         $response->header('Content-Disposition', 'attachment; filename="approval-history.csv"');
         $response->raw($csv);
+    }
+
+    private function filtersFromRequest(Request $request): array
+    {
+        $filters = [];
+
+        foreach (['search', 'member_type', 'payment_status', 'min_plan_cost', 'max_plan_cost', 'from_date', 'to_date'] as $key) {
+            $value = $request->query($key);
+            if ($value !== null && $value !== '') {
+                $filters[$key] = $value;
+            }
+        }
+
+        return $filters;
     }
 }

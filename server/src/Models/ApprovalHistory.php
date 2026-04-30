@@ -51,9 +51,44 @@ final class ApprovalHistory extends BaseModel
             $bindings['action'] = $filters['action'];
         }
 
+        if (!empty($filters['search'])) {
+            $where[] = '(u.name LIKE :search OR u.email LIKE :search OR mp.member_id LIKE :search)';
+            $bindings['search'] = '%' . trim((string) $filters['search']) . '%';
+        }
+
         if (!empty($filters['user_id'])) {
             $where[] = 'ah.user_id = :user_id';
             $bindings['user_id'] = $filters['user_id'];
+        }
+
+        if (!empty($filters['member_type']) && in_array($filters['member_type'], ['university', 'external'], true)) {
+            $where[] = 'mp.member_type = :member_type';
+            $bindings['member_type'] = $filters['member_type'];
+        }
+
+        if (!empty($filters['payment_status']) && in_array(strtolower((string) $filters['payment_status']), ['pending', 'paid', 'failed', 'refunded'], true)) {
+            $where[] = 'm.payment_status = :payment_status';
+            $bindings['payment_status'] = strtolower((string) $filters['payment_status']);
+        }
+
+        if (isset($filters['min_plan_cost']) && is_numeric($filters['min_plan_cost'])) {
+            $where[] = 'm.plan_cost >= :min_plan_cost';
+            $bindings['min_plan_cost'] = (float) $filters['min_plan_cost'];
+        }
+
+        if (isset($filters['max_plan_cost']) && is_numeric($filters['max_plan_cost'])) {
+            $where[] = 'm.plan_cost <= :max_plan_cost';
+            $bindings['max_plan_cost'] = (float) $filters['max_plan_cost'];
+        }
+
+        if (!empty($filters['from_date']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $filters['from_date'])) {
+            $where[] = 'DATE(ah.acted_at) >= :from_date';
+            $bindings['from_date'] = $filters['from_date'];
+        }
+
+        if (!empty($filters['to_date']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $filters['to_date'])) {
+            $where[] = 'DATE(ah.acted_at) <= :to_date';
+            $bindings['to_date'] = $filters['to_date'];
         }
 
         $whereSql = $where ? 'WHERE ' . implode(' AND ', $where) : '';
@@ -61,10 +96,14 @@ final class ApprovalHistory extends BaseModel
         $rows = $this->db->select(
             "SELECT
                 ah.*,
-                u.name AS user_name, u.email AS user_email, u.account_status,
+                u.name, u.name AS user_name, u.email, u.email AS user_email, u.account_status,
                 mp.member_id, mp.member_type, mp.membership_type,
-                m.plan_cost, m.payment_status, m.membership_status,
-                ab.name AS acted_by_name
+                m.plan_cost, m.payment_status, m.membership_status, m.rejection_reason,
+                ab.name AS acted_by_name,
+                CASE WHEN ah.action = 'approved' THEN ab.name ELSE NULL END AS approved_by_name,
+                CASE WHEN ah.action = 'rejected' THEN ab.name ELSE NULL END AS rejected_by_name,
+                CASE WHEN ah.action = 'approved' THEN ah.acted_at ELSE NULL END AS approved_at,
+                CASE WHEN ah.action = 'rejected' THEN ah.acted_at ELSE NULL END AS rejected_at
              FROM {$this->table()} ah
              LEFT JOIN users u ON u.id = ah.user_id
              LEFT JOIN member_profiles mp ON mp.user_id = ah.user_id
@@ -77,7 +116,12 @@ final class ApprovalHistory extends BaseModel
         );
 
         $countRow = $this->db->first(
-            "SELECT COUNT(*) AS total FROM {$this->table()} ah {$whereSql}",
+            "SELECT COUNT(*) AS total
+             FROM {$this->table()} ah
+             LEFT JOIN users u ON u.id = ah.user_id
+             LEFT JOIN member_profiles mp ON mp.user_id = ah.user_id
+             LEFT JOIN memberships m ON m.id = ah.membership_id
+             {$whereSql}",
             $bindings
         ) ?? ['total' => 0];
         $total = (int) ($countRow['total'] ?? 0);
