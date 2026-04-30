@@ -70,13 +70,11 @@ $router->post('/api/auth/reset-password', static function (Request $request, Res
 });
 
 $router->get('/api/auth/google/redirect', static function (Request $request, Response $response): void {
-    $frontend = rtrim((string) AppContext::config()->get('services.frontend_url', 'http://localhost:5173'), '/');
-    $response->redirect($frontend . '/login?oauth_error=google_callback_failed', 302);
+    (new AuthController())->googleRedirect($request, $response);
 });
 
 $router->get('/api/auth/google/callback', static function (Request $request, Response $response): void {
-    $frontend = rtrim((string) AppContext::config()->get('services.frontend_url', 'http://localhost:5173'), '/');
-    $response->redirect($frontend . '/login?oauth_error=google_callback_failed', 302);
+    (new AuthController())->googleCallback($request, $response);
 });
 
 $router->post('/api/payments/chapa/initialize', static function (Request $request, Response $response): void {

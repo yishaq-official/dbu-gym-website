@@ -6,6 +6,7 @@ namespace Yishaq\Server\Controllers;
 
 use RuntimeException;
 use Yishaq\Server\Contracts\Services\AuthServiceInterface;
+use Yishaq\Server\Core\AppContext;
 use Yishaq\Server\Core\Exceptions\HttpException;
 use Yishaq\Server\Core\Request;
 use Yishaq\Server\Core\Response;
@@ -37,6 +38,41 @@ final class AuthController extends BaseController
             $this->ok($response, $result, 'Login successful.');
         } catch (RuntimeException $exception) {
             throw new HttpException($exception->getMessage(), 401);
+        }
+    }
+
+    public function googleRedirect(Request $request, Response $response): void
+    {
+        try {
+            $response->redirect($this->auth->googleRedirectUrl(), 302);
+        } catch (RuntimeException $exception) {
+            throw new HttpException($exception->getMessage(), 422);
+        }
+    }
+
+    public function googleCallback(Request $request, Response $response): void
+    {
+        $frontend = rtrim((string) AppContext::config()->get('services.frontend_url', 'http://localhost:5173'), '/');
+
+        try {
+            $result = $this->auth->loginWithGoogleCallback(
+                (string) $request->query('code', ''),
+                (string) $request->query('state', '')
+            );
+
+            $user = is_array($result['user'] ?? null) ? $result['user'] : [];
+            $role = (string) ($user['role'] ?? 'member');
+            $query = http_build_query([
+                'oauth_token' => (string) ($result['token'] ?? ''),
+                'oauth_role' => $role,
+            ], '', '&', PHP_QUERY_RFC3986);
+
+            $response->redirect($frontend . '/login?' . $query, 302);
+        } catch (RuntimeException $exception) {
+            $message = $exception->getMessage();
+            $knownErrors = ['google_email_missing', 'account_not_found'];
+            $error = in_array($message, $knownErrors, true) ? $message : 'google_callback_failed';
+            $response->redirect($frontend . '/login?oauth_error=' . rawurlencode($error), 302);
         }
     }
 

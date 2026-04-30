@@ -145,6 +145,71 @@ final class AuthService implements AuthServiceInterface
         ];
     }
 
+    public function googleRedirectUrl(): string
+    {
+        $clientId = trim((string) AppContext::config()->get('services.google.client_id', ''));
+        if ($clientId === '') {
+            throw new RuntimeException('Google client ID is not configured.');
+        }
+
+        $state = bin2hex(random_bytes(24));
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            $_SESSION['google_oauth_state'] = $state;
+        }
+
+        return 'https://accounts.google.com/o/oauth2/v2/auth?' . http_build_query([
+            'client_id' => $clientId,
+            'redirect_uri' => $this->googleRedirectUri(),
+            'response_type' => 'code',
+            'scope' => 'openid email profile',
+            'state' => $state,
+            'prompt' => 'select_account',
+        ], '', '&', PHP_QUERY_RFC3986);
+    }
+
+    public function loginWithGoogleCallback(string $code, string $state): array
+    {
+        $code = trim($code);
+        $state = trim($state);
+
+        if ($code === '') {
+            throw new RuntimeException('Google authorization code is missing.');
+        }
+
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            $expectedState = (string) ($_SESSION['google_oauth_state'] ?? '');
+            unset($_SESSION['google_oauth_state']);
+            if ($expectedState === '' || !hash_equals($expectedState, $state)) {
+                throw new RuntimeException('Google login state is invalid.');
+            }
+        }
+
+        $token = $this->fetchGoogleToken($code);
+        $accessToken = (string) ($token['access_token'] ?? '');
+        if ($accessToken === '') {
+            throw new RuntimeException('Google did not return an access token.');
+        }
+
+        $profile = $this->fetchGoogleProfile($accessToken);
+        $email = strtolower(trim((string) ($profile['email'] ?? '')));
+        if ($email === '') {
+            throw new RuntimeException('google_email_missing');
+        }
+
+        $user = $this->users->findByEmail($email);
+        if (!$user) {
+            throw new RuntimeException('account_not_found');
+        }
+
+        $userId = (int) $user['id'];
+        $this->users->updateLastLogin($userId);
+
+        return [
+            'user' => $this->me($userId),
+            'token' => $this->issueToken($userId, (string) $user['role']),
+        ];
+    }
+
     public function me(int $userId): ?array
     {
         $user = $this->users->findById($userId);
@@ -296,6 +361,95 @@ final class AuthService implements AuthServiceInterface
     private function tokenSecret(): string
     {
         return (string) AppContext::config()->get('auth.token.secret', '');
+    }
+
+    private function googleRedirectUri(): string
+    {
+        $configured = trim((string) AppContext::config()->get('services.google.redirect_uri', ''));
+        if ($configured !== '') {
+            return $configured;
+        }
+
+        return rtrim((string) AppContext::config()->get('app.url', 'http://localhost/gym-website/server/public'), '/')
+            . '/api/auth/google/callback';
+    }
+
+    private function fetchGoogleToken(string $code): array
+    {
+        $clientId = trim((string) AppContext::config()->get('services.google.client_id', ''));
+        $clientSecret = trim((string) AppContext::config()->get('services.google.client_secret', ''));
+
+        if ($clientId === '' || $clientSecret === '') {
+            throw new RuntimeException('Google OAuth credentials are not configured.');
+        }
+
+        return $this->requestJson('https://oauth2.googleapis.com/token', [
+            'method' => 'POST',
+            'headers' => [
+                'Content-Type: application/x-www-form-urlencoded',
+                'Accept: application/json',
+            ],
+            'body' => http_build_query([
+                'code' => $code,
+                'client_id' => $clientId,
+                'client_secret' => $clientSecret,
+                'redirect_uri' => $this->googleRedirectUri(),
+                'grant_type' => 'authorization_code',
+            ], '', '&', PHP_QUERY_RFC3986),
+        ]);
+    }
+
+    private function fetchGoogleProfile(string $accessToken): array
+    {
+        return $this->requestJson('https://www.googleapis.com/oauth2/v3/userinfo', [
+            'method' => 'GET',
+            'headers' => [
+                'Accept: application/json',
+                'Authorization: Bearer ' . $accessToken,
+            ],
+        ]);
+    }
+
+    private function requestJson(string $url, array $options): array
+    {
+        $method = (string) ($options['method'] ?? 'GET');
+        $headers = $options['headers'] ?? [];
+        $body = (string) ($options['body'] ?? '');
+
+        $context = stream_context_create([
+            'http' => [
+                'method' => $method,
+                'header' => implode("\r\n", $headers),
+                'content' => $body,
+                'ignore_errors' => true,
+                'timeout' => 15,
+            ],
+        ]);
+
+        $raw = file_get_contents($url, false, $context);
+        if ($raw === false) {
+            throw new RuntimeException('Unable to contact Google OAuth service.');
+        }
+
+        $status = 0;
+        foreach (($http_response_header ?? []) as $header) {
+            if (preg_match('/^HTTP\/\S+\s+(\d+)/', $header, $matches) === 1) {
+                $status = (int) $matches[1];
+                break;
+            }
+        }
+
+        $decoded = json_decode($raw, true);
+        if (!is_array($decoded)) {
+            throw new RuntimeException('Google returned an invalid response.');
+        }
+
+        if ($status >= 400) {
+            $message = (string) ($decoded['error_description'] ?? $decoded['error'] ?? 'Google OAuth request failed.');
+            throw new RuntimeException($message);
+        }
+
+        return $decoded;
     }
 
     private function passwordMinLength(): int

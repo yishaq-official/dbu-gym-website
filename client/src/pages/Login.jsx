@@ -1,6 +1,7 @@
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { useAuth } from '../auth/useAuth'
+import { setAuthToken } from '../lib/api'
 
 function DumbbellIcon({ className }) {
   return (
@@ -66,7 +67,7 @@ function LockIcon({ className }) {
 export default function Login() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const { login } = useAuth()
+  const { login, refreshUser } = useAuth()
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [email, setEmail] = useState('')
@@ -77,6 +78,22 @@ export default function Login() {
     import.meta.env.VITE_API_BASE || 'http://localhost/gym-website/server/public'
 
   useEffect(() => {
+    const oauthToken = searchParams.get('oauth_token')
+    if (oauthToken) {
+      setAuthToken(oauthToken)
+      refreshUser().then((user) => {
+        if (!user) {
+          throw new Error('Unable to load Google user.')
+        }
+        const role = user?.role === 'admin' ? 'admin' : 'member'
+        navigate(role === 'admin' ? '/admin/dashboard' : '/members/dashboard', { replace: true })
+      }).catch(() => {
+        setError('Google login failed. Please try again.')
+        navigate('/login?oauth_error=google_callback_failed', { replace: true })
+      })
+      return
+    }
+
     const oauthError = (searchParams.get('oauth_error') || '').toLowerCase()
     if (!oauthError) return
 
@@ -87,7 +104,7 @@ export default function Login() {
     }
 
     setError(messages[oauthError] || 'Google login failed. Please try again.')
-  }, [searchParams])
+  }, [navigate, refreshUser, searchParams])
 
   const handleSubmit = async (event) => {
     event.preventDefault()

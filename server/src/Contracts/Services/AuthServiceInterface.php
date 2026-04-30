@@ -10,6 +10,10 @@ interface AuthServiceInterface
 
     public function login(array $payload): array;
 
+    public function googleRedirectUrl(): string;
+
+    public function loginWithGoogleCallback(string $code, string $state): array;
+
     public function me(int $userId): ?array;
 
     public function userIdFromRequestToken(string $token): ?int;
