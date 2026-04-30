@@ -78,6 +78,20 @@ export async function logout() {
   })
 }
 
+export async function forgotPassword(payload) {
+  return request('/api/auth/forgot-password', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function resetPassword(payload) {
+  return request('/api/auth/reset-password', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
 export async function me() {
   return request('/api/auth/me', {
     method: 'GET',

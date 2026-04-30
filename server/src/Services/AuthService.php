@@ -7,21 +7,35 @@ namespace Yishaq\Server\Services;
 use RuntimeException;
 use Yishaq\Server\Contracts\Services\AuthServiceInterface;
 use Yishaq\Server\Core\AppContext;
+use Yishaq\Server\Core\Exceptions\ValidationException;
+use Yishaq\Server\Helpers\JwtHelper;
+use Yishaq\Server\Models\AuthTokenSession;
+use Yishaq\Server\Models\PasswordResetToken;
+use Yishaq\Server\Validators\AuthValidator;
 
 final class AuthService implements AuthServiceInterface
 {
     private UserService $users;
     private MemberProfileService $profiles;
     private MembershipService $memberships;
+    private AuthTokenSession $tokenSessions;
+    private PasswordResetToken $resetTokens;
+    private JwtHelper $jwt;
 
     public function __construct(
         ?UserService $users = null,
         ?MemberProfileService $profiles = null,
-        ?MembershipService $memberships = null
+        ?MembershipService $memberships = null,
+        ?AuthTokenSession $tokenSessions = null,
+        ?PasswordResetToken $resetTokens = null,
+        ?JwtHelper $jwt = null
     ) {
         $this->users = $users ?? new UserService();
         $this->profiles = $profiles ?? new MemberProfileService();
         $this->memberships = $memberships ?? new MembershipService();
+        $this->tokenSessions = $tokenSessions ?? new AuthTokenSession();
+        $this->resetTokens = $resetTokens ?? new PasswordResetToken();
+        $this->jwt = $jwt ?? new JwtHelper();
     }
 
     public function register(array $payload): array
@@ -29,23 +43,7 @@ final class AuthService implements AuthServiceInterface
         $name = trim((string) ($payload['name'] ?? ''));
         $email = strtolower(trim((string) ($payload['email'] ?? '')));
         $password = (string) ($payload['password'] ?? '');
-        $passwordConfirmation = (string) ($payload['password_confirmation'] ?? '');
-
-        if ($name === '' || $email === '' || $password === '') {
-            throw new RuntimeException('Name, email, and password are required.');
-        }
-
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            throw new RuntimeException('Email format is invalid.');
-        }
-
-        if ($password !== $passwordConfirmation) {
-            throw new RuntimeException('Password confirmation does not match.');
-        }
-
-        if (strlen($password) < 8) {
-            throw new RuntimeException('Password must be at least 8 characters.');
-        }
+        $this->validateOrFail((new AuthValidator($this->passwordMinLength()))->validateRegister($payload));
 
         $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
         if ($hashedPassword === false) {
@@ -114,10 +112,7 @@ final class AuthService implements AuthServiceInterface
     {
         $email = strtolower(trim((string) ($payload['email'] ?? '')));
         $password = (string) ($payload['password'] ?? '');
-
-        if ($email === '' || $password === '') {
-            throw new RuntimeException('Email and password are required.');
-        }
+        $this->validateOrFail((new AuthValidator($this->passwordMinLength()))->validateLogin($payload));
 
         $user = $this->users->findByEmail($email);
         if (!$user) {
@@ -174,18 +169,13 @@ final class AuthService implements AuthServiceInterface
 
     public function userIdFromRequestToken(string $token): ?int
     {
-        $decoded = base64_decode($token, true);
-        if ($decoded === false) {
+        $payload = $this->decodeToken($token);
+        if ($payload === null) {
             return null;
         }
 
-        $payload = json_decode($decoded, true);
-        if (!is_array($payload)) {
-            return null;
-        }
-
-        $exp = (int) ($payload['exp'] ?? 0);
-        if ($exp > 0 && $exp < time()) {
+        $jti = (string) ($payload['jti'] ?? '');
+        if ($jti === '' || !$this->tokenSessions->findActive($jti)) {
             return null;
         }
 
@@ -193,16 +183,123 @@ final class AuthService implements AuthServiceInterface
         return $userId > 0 ? $userId : null;
     }
 
+    public function logout(string $token): void
+    {
+        $payload = $this->decodeToken($token);
+        $jti = is_array($payload) ? (string) ($payload['jti'] ?? '') : '';
+        if ($jti !== '') {
+            $this->tokenSessions->revoke($jti);
+        }
+    }
+
+    public function requestPasswordReset(array $payload): array
+    {
+        $email = strtolower(trim((string) ($payload['email'] ?? '')));
+        $this->validateOrFail((new AuthValidator($this->passwordMinLength()))->validateForgotPassword($payload));
+
+        $user = $this->users->findByEmail($email);
+        $plainToken = bin2hex(random_bytes(32));
+
+        if ($user) {
+            $hashedToken = password_hash($plainToken, PASSWORD_DEFAULT);
+            if ($hashedToken === false) {
+                throw new RuntimeException('Failed to secure reset token.');
+            }
+
+            $this->resetTokens->store($email, $hashedToken);
+        }
+
+        $response = [
+            'email' => $email,
+        ];
+
+        if ($user && $this->isDebug()) {
+            $frontendUrl = rtrim((string) AppContext::config()->get('services.frontend_url', ''), '/');
+            $response['reset_token'] = $plainToken;
+            $response['reset_url'] = $frontendUrl . '/reset-password?email=' . rawurlencode($email)
+                . '&token=' . rawurlencode($plainToken);
+        }
+
+        return $response;
+    }
+
+    public function resetPassword(array $payload): void
+    {
+        $email = strtolower(trim((string) ($payload['email'] ?? '')));
+        $token = (string) ($payload['token'] ?? '');
+        $password = (string) ($payload['password'] ?? '');
+
+        $this->validateOrFail((new AuthValidator($this->passwordMinLength()))->validateResetPassword($payload));
+
+        $stored = $this->resetTokens->findByEmail($email);
+        if (!$stored || !password_verify($token, (string) ($stored['token'] ?? ''))) {
+            throw new RuntimeException('Reset token is invalid or expired.');
+        }
+
+        $createdAt = strtotime((string) ($stored['created_at'] ?? ''));
+        if ($createdAt === false || $createdAt < (time() - 3600)) {
+            $this->resetTokens->deleteByEmail($email);
+            throw new RuntimeException('Reset token is invalid or expired.');
+        }
+
+        $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+        if ($hashedPassword === false) {
+            throw new RuntimeException('Failed to secure password.');
+        }
+
+        $this->users->updatePasswordByEmail($email, $hashedPassword);
+        $this->resetTokens->deleteByEmail($email);
+    }
+
     private function issueToken(int $userId, string $role): string
     {
+        $now = time();
+        $ttl = max(300, (int) AppContext::config()->get('auth.token.ttl_seconds', 604800));
+        $jti = bin2hex(random_bytes(16));
         $payload = [
             'sub' => $userId,
             'role' => $role,
-            'iat' => time(),
-            'exp' => time() + (60 * 60 * 24 * 7),
+            'iss' => (string) AppContext::config()->get('auth.token.issuer', 'dbugym-api'),
+            'iat' => $now,
+            'nbf' => $now,
+            'exp' => $now + $ttl,
+            'jti' => $jti,
         ];
 
-        return base64_encode((string) json_encode($payload, JSON_UNESCAPED_SLASHES));
+        $this->tokenSessions->createTokenSession($jti, $userId, $payload);
+
+        return $this->jwt->encode($payload, $this->tokenSecret());
+    }
+
+    private function decodeToken(string $token): ?array
+    {
+        return $this->jwt->decode(
+            $token,
+            $this->tokenSecret(),
+            (string) AppContext::config()->get('auth.token.issuer', 'dbugym-api')
+        );
+    }
+
+    private function tokenSecret(): string
+    {
+        return (string) AppContext::config()->get('auth.token.secret', '');
+    }
+
+    private function passwordMinLength(): int
+    {
+        return max(8, (int) AppContext::config()->get('auth.password.min_length', 8));
+    }
+
+    private function validateOrFail(array $errors): void
+    {
+        if ($errors !== []) {
+            throw new ValidationException($errors);
+        }
+    }
+
+    private function isDebug(): bool
+    {
+        return (bool) AppContext::config()->get('app.debug', false);
     }
 
     private function resolvePlanCost(string $membershipType, string $memberType): float

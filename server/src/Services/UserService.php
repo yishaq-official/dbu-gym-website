@@ -46,4 +46,9 @@ final class UserService
     {
         $this->users->updateById($id, ['last_login_at' => date('Y-m-d H:i:s')]);
     }
+
+    public function updatePasswordByEmail(string $email, string $hashedPassword): void
+    {
+        $this->users->updatePasswordByEmail($email, $hashedPassword);
+    }
 }

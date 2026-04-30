@@ -35,6 +35,13 @@ final class Response
         $this->sendHeaders();
     }
 
+    public function redirect(string $url, int $status = 302): void
+    {
+        $this->status($status);
+        $this->header('Location', $url);
+        $this->sendHeaders();
+    }
+
     private function sendHeaders(): void
     {
         http_response_code($this->status);

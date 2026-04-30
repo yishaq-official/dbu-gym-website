@@ -13,4 +13,10 @@ interface AuthServiceInterface
     public function me(int $userId): ?array;
 
     public function userIdFromRequestToken(string $token): ?int;
+
+    public function logout(string $token): void;
+
+    public function requestPasswordReset(array $payload): array;
+
+    public function resetPassword(array $payload): void;
 }

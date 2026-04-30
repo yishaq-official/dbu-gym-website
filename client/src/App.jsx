@@ -6,6 +6,7 @@ import ForgotPassword from './pages/ForgotPassword'
 import Home from './pages/Home'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import ResetPassword from './pages/ResetPassword'
 import Terms from './pages/Terms'
 import PaymentReturn from './pages/PaymentReturn'
 import PendingApproval from './pages/PendingApproval'
@@ -77,6 +78,7 @@ export default function App() {
       />
       <Route path="/login" element={<Login />} />
       <Route path="/forgot" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/register" element={<Register />} />
       <Route path="/terms" element={<Terms />} />
       <Route path="/payments/chapa/return" element={<PaymentReturn />} />

@@ -67,4 +67,15 @@ final class User extends BaseModel
             $bindings
         );
     }
+
+    public function updatePasswordByEmail(string $email, string $hashedPassword): int
+    {
+        return $this->db->statement(
+            "UPDATE {$this->table()} SET password = :password, updated_at = NOW() WHERE email = :email",
+            [
+                'email' => $email,
+                'password' => $hashedPassword,
+            ]
+        );
+    }
 }

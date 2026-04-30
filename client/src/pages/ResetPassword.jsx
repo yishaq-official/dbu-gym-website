@@ -1,6 +1,6 @@
-import { Link } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useState } from 'react'
-import { forgotPassword } from '../lib/api'
+import { resetPassword } from '../lib/api'
 
 function DumbbellIcon({ className }) {
   return (
@@ -18,8 +18,6 @@ function DumbbellIcon({ className }) {
       <path d="M7 7v10" />
       <path d="M10 8h4" />
       <path d="M10 16h4" />
-      <path d="M14 8h0" />
-      <path d="M14 16h0" />
       <path d="M17 7v10" />
       <path d="M20 9v6" />
       <rect x="9" y="10" width="6" height="4" rx="2" />
@@ -27,7 +25,7 @@ function DumbbellIcon({ className }) {
   )
 }
 
-function MailIcon({ className }) {
+function LockIcon({ className }) {
   return (
     <svg
       className={className}
@@ -39,40 +37,42 @@ function MailIcon({ className }) {
       strokeLinejoin="round"
       aria-hidden="true"
     >
-      <rect x="3" y="5" width="18" height="14" rx="2" />
-      <path d="M3 7l9 6 9-6" />
+      <rect x="4" y="11" width="16" height="9" rx="2" />
+      <path d="M8 11V8a4 4 0 0 1 8 0v3" />
     </svg>
   )
 }
 
-export default function ForgotPassword() {
-  const [email, setEmail] = useState('')
+export default function ResetPassword() {
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const [email, setEmail] = useState(searchParams.get('email') || '')
+  const [token, setToken] = useState(searchParams.get('token') || '')
+  const [password, setPassword] = useState('')
+  const [passwordConfirmation, setPasswordConfirmation] = useState('')
   const [error, setError] = useState('')
-  const [message, setMessage] = useState('')
-  const [resetUrl, setResetUrl] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
   const handleSubmit = async (event) => {
     event.preventDefault()
-    const trimmedEmail = email.trim()
-    if (!trimmedEmail) {
-      setError('Please enter your email address.')
+    if (!email.trim() || !token.trim() || !password || !passwordConfirmation) {
+      setError('Please complete all reset fields.')
       return
     }
 
     setError('')
-    setMessage('')
-    setResetUrl('')
     setSubmitting(true)
 
     try {
-      const response = await forgotPassword({ email: trimmedEmail })
-      setMessage(response.message || 'Password reset instructions are ready.')
-      if (response.data?.reset_url) {
-        setResetUrl(response.data.reset_url)
-      }
+      await resetPassword({
+        email: email.trim(),
+        token: token.trim(),
+        password,
+        password_confirmation: passwordConfirmation,
+      })
+      navigate('/login')
     } catch (err) {
-      setError(err?.message || 'Unable to start password reset.')
+      setError(err?.message || 'Unable to reset password.')
     } finally {
       setSubmitting(false)
     }
@@ -93,10 +93,10 @@ export default function ForgotPassword() {
               <DumbbellIcon className="h-8 w-8" />
             </Link>
             <h1 className="font-display text-3xl font-semibold text-white">
-              Reset Your Password
+              Create New Password
             </h1>
             <p className="mt-2 text-sm text-white/70">
-              Enter your email and we’ll send reset instructions.
+              Use your reset token to secure your account.
             </p>
           </div>
 
@@ -107,25 +107,51 @@ export default function ForgotPassword() {
                   {error}
                 </div>
               ) : null}
-              {message ? (
-                <div className="rounded-2xl border border-emerald-400/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
-                  <p>{message}</p>
-                  {resetUrl ? (
-                    <Link className="mt-2 block text-[var(--accent)] hover:underline" to={resetUrl.replace(window.location.origin, '')}>
-                      Open reset page
-                    </Link>
-                  ) : null}
-                </div>
-              ) : null}
+
               <label className="block text-sm text-white/70">
                 Email Address
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  disabled={submitting}
+                  className="mt-2 w-full rounded-2xl border border-white/20 bg-black/40 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:outline-none"
+                />
+              </label>
+
+              <label className="block text-sm text-white/70">
+                Reset Token
+                <input
+                  type="text"
+                  value={token}
+                  onChange={(event) => setToken(event.target.value)}
+                  disabled={submitting}
+                  className="mt-2 w-full rounded-2xl border border-white/20 bg-black/40 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:outline-none"
+                />
+              </label>
+
+              <label className="block text-sm text-white/70">
+                New Password
                 <div className="mt-2 flex items-center gap-3 rounded-2xl border border-white/20 bg-black/40 px-4 py-3 text-white">
-                  <MailIcon className="h-5 w-5 text-[var(--accent)]" />
+                  <LockIcon className="h-5 w-5 text-[var(--accent)]" />
                   <input
-                    type="email"
-                    placeholder="you@example.com"
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
+                    type="password"
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    disabled={submitting}
+                    className="w-full bg-transparent text-sm text-white placeholder:text-white/40 focus:outline-none"
+                  />
+                </div>
+              </label>
+
+              <label className="block text-sm text-white/70">
+                Confirm Password
+                <div className="mt-2 flex items-center gap-3 rounded-2xl border border-white/20 bg-black/40 px-4 py-3 text-white">
+                  <LockIcon className="h-5 w-5 text-[var(--accent)]" />
+                  <input
+                    type="password"
+                    value={passwordConfirmation}
+                    onChange={(event) => setPasswordConfirmation(event.target.value)}
                     disabled={submitting}
                     className="w-full bg-transparent text-sm text-white placeholder:text-white/40 focus:outline-none"
                   />
@@ -137,16 +163,9 @@ export default function ForgotPassword() {
                 disabled={submitting}
                 className="w-full rounded-full bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-black shadow-[0_15px_40px_var(--accent-glow)] transition hover:-translate-y-0.5 hover:bg-[var(--accent-strong)]"
               >
-                {submitting ? 'Sending...' : 'Send Reset Link'}
+                {submitting ? 'Resetting...' : 'Reset Password'}
               </button>
             </form>
-
-            <p className="mt-6 text-center text-sm text-white/60">
-              Remembered your password?{' '}
-              <Link to="/login" className="text-[var(--accent)] hover:underline">
-                Back to login
-              </Link>
-            </p>
           </div>
         </div>
       </main>

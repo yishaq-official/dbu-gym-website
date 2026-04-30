@@ -59,4 +59,34 @@ final class AuthController extends BaseController
 
         $this->ok($response, ['user' => $user], 'Authenticated user fetched.');
     }
+
+    public function logout(Request $request, Response $response): void
+    {
+        $token = $request->bearerToken();
+        if ($token) {
+            $this->auth->logout($token);
+        }
+
+        $this->ok($response, null, 'Logout successful.');
+    }
+
+    public function forgotPassword(Request $request, Response $response): void
+    {
+        $result = $this->auth->requestPasswordReset($request->json());
+        $this->ok(
+            $response,
+            $result,
+            'If an account exists for that email, password reset instructions have been prepared.'
+        );
+    }
+
+    public function resetPassword(Request $request, Response $response): void
+    {
+        try {
+            $this->auth->resetPassword($request->json());
+            $this->ok($response, null, 'Password reset successful.');
+        } catch (RuntimeException $exception) {
+            throw new HttpException($exception->getMessage(), 422);
+        }
+    }
 }

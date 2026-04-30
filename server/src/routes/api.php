@@ -57,11 +57,23 @@ $router->get('/api/auth/me', static function (Request $request, Response $respon
 });
 
 $router->post('/api/auth/logout', static function (Request $request, Response $response): void {
-    $response->json(
-        [
-            'success' => true,
-            'message' => 'Logout successful.',
-        ],
-        200
-    );
+    (new AuthController())->logout($request, $response);
+});
+
+$router->post('/api/auth/forgot-password', static function (Request $request, Response $response): void {
+    (new AuthController())->forgotPassword($request, $response);
+});
+
+$router->post('/api/auth/reset-password', static function (Request $request, Response $response): void {
+    (new AuthController())->resetPassword($request, $response);
+});
+
+$router->get('/api/auth/google/redirect', static function (Request $request, Response $response): void {
+    $frontend = rtrim((string) AppContext::config()->get('services.frontend_url', 'http://localhost:5173'), '/');
+    $response->redirect($frontend . '/login?oauth_error=google_callback_failed', 302);
+});
+
+$router->get('/api/auth/google/callback', static function (Request $request, Response $response): void {
+    $frontend = rtrim((string) AppContext::config()->get('services.frontend_url', 'http://localhost:5173'), '/');
+    $response->redirect($frontend . '/login?oauth_error=google_callback_failed', 302);
 });
