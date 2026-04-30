@@ -83,7 +83,7 @@ final class PaymentService implements PaymentServiceInterface
             'last_name' => $names['last_name'],
             'tx_ref' => $txRef,
             'customization' => [
-                'title' => 'DBU Gym Membership',
+                'title' => 'DBU Membership',
                 'description' => 'Membership registration payment',
             ],
         ];
