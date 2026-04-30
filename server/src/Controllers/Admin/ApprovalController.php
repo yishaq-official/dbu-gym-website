@@ -9,14 +9,17 @@ use Yishaq\Server\Controllers\BaseController;
 use Yishaq\Server\Core\Request;
 use Yishaq\Server\Core\Response;
 use Yishaq\Server\Services\ApprovalService;
+use Yishaq\Server\Services\CsvService;
 
 final class ApprovalController extends BaseController
 {
     private ApprovalService $approvals;
+    private CsvService $csv;
 
-    public function __construct(?ApprovalService $approvals = null)
+    public function __construct(?ApprovalService $approvals = null, ?CsvService $csv = null)
     {
         $this->approvals = $approvals ?? new ApprovalService();
+        $this->csv = $csv ?? new CsvService();
     }
 
     public function index(Request $request, Response $response, array $user): void
