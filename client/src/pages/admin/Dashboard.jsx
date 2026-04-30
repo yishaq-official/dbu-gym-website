@@ -330,7 +330,7 @@ function LineChart({ labels, joined, expired, pending }) {
       {/* X-axis labels */}
       {labels.map((label, index) => (
         <text
-          key={label}
+          key={`${label}-${index}`}
           x={getX(index, labels.length - 1 || 1)}
           y="96"
           fontSize="3.5"
@@ -598,6 +598,7 @@ export default function AdminDashboard() {
     }
     const labels = Array.from({ length: 6 }, (_, index) => {
       const date = new Date()
+      date.setDate(1)
       date.setMonth(date.getMonth() - (5 - index))
       return date.toLocaleString('default', { month: 'short' })
     })

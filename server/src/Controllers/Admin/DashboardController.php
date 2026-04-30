@@ -67,7 +67,7 @@ final class DashboardController extends BaseController
         $expired = [];
         $pending = [];
         for ($i = 5; $i >= 0; $i--) {
-            $monthDate = strtotime("-{$i} months");
+            $monthDate = strtotime(date('Y-m-01') . " -{$i} months");
             $ym = date('Y-m', $monthDate);
             $labels[] = date('M', $monthDate);
             $joined[] = 0;
