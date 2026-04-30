@@ -40,9 +40,29 @@ final class ProfileController extends BaseController
 
     public function password(Request $request, Response $response, array $user): void
     {
+        $payload = $request->json();
+
+        $validator = new \Yishaq\Server\Validators\AuthValidator(max(8, (int) AppContext::config()->get('auth.password.min_length', 8)));
+        $errors = $validator->validatePassword($payload);
+        if ($errors !== []) {
+            $this->error($response, implode(', ', $errors), 422);
+            return;
+        }
+
         try {
-            $payload = $request->json();
-            $this->users->updatePasswordById((int) $user['id'], password_hash($payload['password'], PASSWORD_DEFAULT));
+            $fresh = $this->users->findById((int) $user['id']);
+            if (!$fresh || !password_verify((string) $payload['current_password'], (string) ($fresh['password'] ?? ''))) {
+                $this->error($response, 'Current password is incorrect.', 422);
+                return;
+            }
+
+            $hashedPassword = password_hash((string) $payload['password'], PASSWORD_DEFAULT);
+            if ($hashedPassword === false) {
+                $this->error($response, 'Failed to secure password.', 500);
+                return;
+            }
+
+            $this->users->updatePasswordById((int) $user['id'], $hashedPassword);
             $this->ok($response, null, 'Password updated.');
         } catch (RuntimeException $exception) {
             $this->error($response, $exception->getMessage(), 422);

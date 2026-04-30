@@ -6,6 +6,7 @@ use Yishaq\Server\Controllers\Admin\ApprovalController;
 use Yishaq\Server\Controllers\Admin\DashboardController;
 use Yishaq\Server\Controllers\Admin\MemberController;
 use Yishaq\Server\Controllers\Admin\ProfileController;
+use Yishaq\Server\Controllers\Admin\SettingsController;
 use Yishaq\Server\Core\Request;
 use Yishaq\Server\Core\Response;
 use Yishaq\Server\Middleware\AuthMiddleware;
@@ -82,4 +83,19 @@ $router->put('/api/admin/password', static function (Request $request, Response 
 $router->post('/api/admin/profile/avatar', static function (Request $request, Response $response): void {
     $user = adminRequireAuth($request);
     (new ProfileController())->avatar($request, $response, $user);
+});
+
+$router->get('/api/admin/settings', static function (Request $request, Response $response): void {
+    $user = adminRequireAuth($request);
+    (new SettingsController())->show($request, $response, $user);
+});
+
+$router->put('/api/admin/settings', static function (Request $request, Response $response): void {
+    $user = adminRequireAuth($request);
+    (new SettingsController())->update($request, $response, $user);
+});
+
+$router->post('/api/admin/settings/logo', static function (Request $request, Response $response): void {
+    $user = adminRequireAuth($request);
+    (new SettingsController())->logo($request, $response, $user);
 });

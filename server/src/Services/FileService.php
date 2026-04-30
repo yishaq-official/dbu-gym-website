@@ -20,6 +20,14 @@ final class FileService
     /**
      * @param array<string, mixed> $file
      */
+    public function storeLogo(array $file): string
+    {
+        return $this->storeImage($file, (string) AppContext::config()->get('services.uploads.logos_dir', 'storage/uploads/logos'));
+    }
+
+    /**
+     * @param array<string, mixed> $file
+     */
     private function storeImage(array $file, string $relativeDir): string
     {
         if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
