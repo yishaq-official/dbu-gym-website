@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Yishaq\Server\Validators;
 
+use Yishaq\Server\Core\AppContext;
+
 final class AuthValidator extends BaseValidator
 {
     public function __construct(private readonly int $passwordMinLength = 8)
