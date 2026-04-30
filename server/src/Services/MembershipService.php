@@ -25,4 +25,28 @@ final class MembershipService
         $id = $this->memberships->create($payload);
         return $this->memberships->findById($id) ?? [];
     }
+
+    public function markPaymentPaid(int $id, string $membershipType): array
+    {
+        $startAt = date('Y-m-d H:i:s');
+        $expiresAt = date('Y-m-d H:i:s', strtotime('+' . $this->durationMonths($membershipType) . ' months'));
+        $this->memberships->markPaymentPaid($id, $startAt, $expiresAt);
+
+        return $this->memberships->findById($id) ?? [];
+    }
+
+    public function markPaymentFailed(int $id): void
+    {
+        $this->memberships->markPaymentFailed($id);
+    }
+
+    private function durationMonths(string $membershipType): int
+    {
+        return match (strtolower($membershipType)) {
+            '3months' => 3,
+            '6months' => 6,
+            '1year' => 12,
+            default => 1,
+        };
+    }
 }

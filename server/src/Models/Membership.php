@@ -51,4 +51,31 @@ final class Membership extends BaseModel
 
         return (int) $this->db->pdo()->lastInsertId();
     }
+
+    public function markPaymentPaid(int $id, string $startAt, string $expiresAt): int
+    {
+        return $this->db->statement(
+            "UPDATE {$this->table()}
+             SET payment_status = 'paid',
+                 plan_start_at = :plan_start_at,
+                 plan_expires_at = :plan_expires_at,
+                 updated_at = NOW()
+             WHERE id = :id",
+            [
+                'id' => $id,
+                'plan_start_at' => $startAt,
+                'plan_expires_at' => $expiresAt,
+            ]
+        );
+    }
+
+    public function markPaymentFailed(int $id): int
+    {
+        return $this->db->statement(
+            "UPDATE {$this->table()}
+             SET payment_status = 'failed', updated_at = NOW()
+             WHERE id = :id",
+            ['id' => $id]
+        );
+    }
 }

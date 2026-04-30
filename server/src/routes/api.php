@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Yishaq\Server\Controllers\AuthController;
+use Yishaq\Server\Controllers\PaymentController;
 use Yishaq\Server\Core\AppContext;
 use Yishaq\Server\Core\Exceptions\HttpException;
 use Yishaq\Server\Core\Request;
@@ -76,4 +77,12 @@ $router->get('/api/auth/google/redirect', static function (Request $request, Res
 $router->get('/api/auth/google/callback', static function (Request $request, Response $response): void {
     $frontend = rtrim((string) AppContext::config()->get('services.frontend_url', 'http://localhost:5173'), '/');
     $response->redirect($frontend . '/login?oauth_error=google_callback_failed', 302);
+});
+
+$router->post('/api/payments/chapa/initialize', static function (Request $request, Response $response): void {
+    (new PaymentController())->initializeChapa($request, $response);
+});
+
+$router->get('/api/payments/chapa/verify/{tx_ref}', static function (Request $request, Response $response, array $params): void {
+    (new PaymentController())->verifyChapa($request, $response, $params);
 });

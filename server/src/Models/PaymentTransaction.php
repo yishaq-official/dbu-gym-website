@@ -48,6 +48,33 @@ final class PaymentTransaction extends BaseModel
         return (int) $this->db->pdo()->lastInsertId();
     }
 
+    public function updateCheckoutUrl(string $txRef, string $checkoutUrl): int
+    {
+        return $this->db->statement(
+            "UPDATE {$this->table()}
+             SET checkout_url = :checkout_url, updated_at = NOW()
+             WHERE tx_ref = :tx_ref",
+            [
+                'tx_ref' => $txRef,
+                'checkout_url' => $checkoutUrl,
+            ]
+        );
+    }
+
+    public function linkUserAndMembership(string $txRef, int $userId, int $membershipId): int
+    {
+        return $this->db->statement(
+            "UPDATE {$this->table()}
+             SET user_id = :user_id, membership_id = :membership_id, updated_at = NOW()
+             WHERE tx_ref = :tx_ref",
+            [
+                'tx_ref' => $txRef,
+                'user_id' => $userId,
+                'membership_id' => $membershipId,
+            ]
+        );
+    }
+
     public function markAsSuccess(string $txRef, array $gatewayResponse = []): int
     {
         return $this->db->statement(
@@ -69,6 +96,24 @@ final class PaymentTransaction extends BaseModel
         return $this->db->statement(
             "UPDATE {$this->table()}
              SET status = 'failed',
+                 failure_reason = :failure_reason,
+                 gateway_response = :gateway_response,
+                 failed_at = NOW(),
+                 updated_at = NOW()
+             WHERE tx_ref = :tx_ref",
+            [
+                'tx_ref' => $txRef,
+                'failure_reason' => $reason,
+                'gateway_response' => json_encode($gatewayResponse, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            ]
+        );
+    }
+
+    public function markAsCancelled(string $txRef, ?string $reason = null, array $gatewayResponse = []): int
+    {
+        return $this->db->statement(
+            "UPDATE {$this->table()}
+             SET status = 'cancelled',
                  failure_reason = :failure_reason,
                  gateway_response = :gateway_response,
                  failed_at = NOW(),

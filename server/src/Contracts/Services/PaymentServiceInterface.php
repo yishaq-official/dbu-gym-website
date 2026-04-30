@@ -6,6 +6,10 @@ namespace Yishaq\Server\Contracts\Services;
 
 interface PaymentServiceInterface
 {
+    public function initializeChapaPayment(array $payload): array;
+
+    public function verifyChapaPayment(string $txRef): array;
+
     public function findByTxRef(string $txRef): ?array;
 
     public function createPending(array $payload): array;
