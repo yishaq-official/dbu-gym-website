@@ -66,6 +66,7 @@ final class ProfileController extends BaseController
             }
 
             $this->users->updatePasswordById((int) $user['id'], $hashedPassword);
+            $this->audit->log('change_admin_password', (int) $user['id']);
             $this->ok($response, null, 'Password updated.');
         } catch (RuntimeException $exception) {
             $this->error($response, $exception->getMessage(), 422);
@@ -84,6 +85,9 @@ final class ProfileController extends BaseController
         try {
             $path = $this->files->storeAvatar($file);
             $updated = $this->users->updateProfile((int) $user['id'], ['avatar_path' => $path]);
+            $this->audit->log('upload_admin_avatar', (int) $user['id'], [
+                'avatar_path' => $path
+            ]);
             $this->ok($response, [
                 'avatar_url' => $this->assetUrl($path),
                 'user' => $updated,
