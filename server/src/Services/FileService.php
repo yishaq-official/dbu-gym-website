@@ -81,7 +81,12 @@ final class FileService
 
         $basePath = dirname(__DIR__, 2);
         $relativeDir = trim($relativeDir, '/');
-        $targetDir = $basePath . '/' . $relativeDir;
+        if (str_starts_with($relativeDir, 'storage/')) {
+            $targetDir = $basePath . '/public/' . $relativeDir;
+        } else {
+            $targetDir = $basePath . '/' . $relativeDir;
+        }
+
         if (!is_dir($targetDir) && !mkdir($targetDir, 0775, true) && !is_dir($targetDir)) {
             throw new RuntimeException('Unable to prepare upload directory.');
         }

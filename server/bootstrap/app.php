@@ -47,6 +47,11 @@ if ($canUseFileSession) {
     }
 }
 
+$publicStorage = $basePath . '/public/storage';
+if (!is_dir($publicStorage) && !file_exists($publicStorage)) {
+    @mkdir($publicStorage, 0775, true);
+}
+
 $defaultConnection = (string) $config->get('database.default', 'mysql');
 $connection = $config->get('database.connections.' . $defaultConnection, []);
 if (!is_array($connection) || $connection === []) {

@@ -3,6 +3,7 @@ import Footer from '../../components/Footer'
 import MemberNavbar from '../../components/MemberNavbar'
 import { useAuth } from '../../auth/useAuth'
 import { getMemberDashboard, renewMembership } from '../../lib/api'
+import { useNavigate } from 'react-router-dom'
 
 const member = {
   name: 'Mekdes Alemu',
@@ -66,6 +67,7 @@ export default function Dashboard() {
   const basePrice = priceMap[renewalPlan] || 0
   const isUniversityMember = (memberInfo.member_type || '').toLowerCase() === 'university'
   const estimatedPrice = isUniversityMember ? Math.round(basePrice * 0.8) : basePrice
+  const navigate = useNavigate();
 
   const handleRenew = async () => {
     setError('')
@@ -274,15 +276,18 @@ export default function Dashboard() {
                 Quick Actions
               </h3>
               <div className="mt-4 grid gap-3">
-                <button className="rounded-2xl border border-[var(--accent)] px-4 py-3 text-sm font-semibold text-[var(--text)] transition hover:bg-[var(--accent)] hover:text-black">
+                <button className="rounded-2xl border border-[var(--accent)] px-4 py-3 text-sm font-semibold text-[var(--text)] transition hover:bg-[var(--accent)] hover:text-black" 
+                  onClick={() => navigate('/members/profile')}>
                   Update Profile
                 </button>
+                
                 <button
                   type="button"
                   onClick={() => setShowRenewModal(true)}
                   disabled={renewing}
                   className="rounded-2xl border border-[var(--border)] px-4 py-3 text-sm font-semibold text-[var(--text-soft)] transition hover:border-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-70"
                 >
+
                   Renew Membership
                 </button>
               </div>
