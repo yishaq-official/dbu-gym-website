@@ -36,6 +36,9 @@ final class ProfileController extends BaseController
         try {
             $payload = $request->json();
             $updated = $this->users->updateProfile((int) $user['id'], $payload);
+            $this->audit->log('update_admin_profile', (int) $user['id'], [
+                'updated_fields' => array_keys($payload)
+            ]);
             $this->ok($response, ['user' => $updated], 'Profile updated.');
         } catch (RuntimeException $exception) {
             $this->error($response, $exception->getMessage(), 422);
