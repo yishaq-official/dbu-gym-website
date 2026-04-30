@@ -11,11 +11,13 @@ use Yishaq\Server\Core\ExceptionHandler;
 use Yishaq\Server\Core\Request;
 use Yishaq\Server\Core\Response;
 use Yishaq\Server\Contracts\Services\AuthServiceInterface;
+use Yishaq\Server\Contracts\Services\MemberServiceInterface;
 use Yishaq\Server\Contracts\Services\PaymentServiceInterface;
 use Yishaq\Server\Contracts\Services\SettingsServiceInterface;
 use Yishaq\Server\Database;
 use Yishaq\Server\Router;
 use Yishaq\Server\Services\AuthService;
+use Yishaq\Server\Services\MemberService;
 use Yishaq\Server\Services\PaymentService;
 use Yishaq\Server\Services\SettingsService;
 
@@ -62,6 +64,7 @@ $container->singleton(Response::class, static fn (): Response => new Response())
 $container->singleton(Router::class, static fn (): Router => new Router());
 $container->singleton(ExceptionHandler::class, static fn (): ExceptionHandler => new ExceptionHandler());
 $container->singleton(AuthServiceInterface::class, static fn (): AuthServiceInterface => new AuthService());
+$container->singleton(MemberServiceInterface::class, static fn (): MemberServiceInterface => new MemberService());
 $container->singleton(PaymentServiceInterface::class, static fn (): PaymentServiceInterface => new PaymentService());
 $container->singleton(SettingsServiceInterface::class, static fn (): SettingsServiceInterface => new SettingsService());
 $container->singleton(Application::class, static function (Container $c): Application {

@@ -40,6 +40,20 @@ final class MembershipService
         $this->memberships->markPaymentFailed($id);
     }
 
+    public function createRenewal(int $userId, string $membershipType, float $planCost, string $currency = 'ETB'): array
+    {
+        $id = $this->memberships->create([
+            'user_id' => $userId,
+            'membership_type' => $membershipType,
+            'plan_cost' => $planCost,
+            'currency' => $currency,
+            'membership_status' => 'pending',
+            'payment_status' => 'pending',
+        ]);
+
+        return $this->memberships->findById($id) ?? [];
+    }
+
     private function durationMonths(string $membershipType): int
     {
         return match (strtolower($membershipType)) {

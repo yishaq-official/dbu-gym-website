@@ -51,7 +51,7 @@ export default function EditProfile() {
       try {
         const data = await getMemberProfile()
         if (!active) return
-        const fetched = data?.user
+        const fetched = data?.data?.user || data?.user
         if (fetched) {
           setFormValues((current) => ({
             ...current,
@@ -101,8 +101,9 @@ export default function EditProfile() {
     try {
       setAvatarUploading(true)
       const data = await uploadMemberAvatar(file)
-      if (data?.avatar_url) {
-        setAvatarUrl(data.avatar_url)
+      const uploadedUrl = data?.data?.avatar_url || data?.avatar_url
+      if (uploadedUrl) {
+        setAvatarUrl(uploadedUrl)
       }
     } catch (err) {
       setError(err?.message || 'Avatar upload failed.')
@@ -152,7 +153,7 @@ export default function EditProfile() {
         membership_type: formValues.membership_type || null,
         university_id: formValues.university_id || null,
       })
-      const updated = data?.user
+      const updated = data?.data?.user || data?.user
       if (updated) {
         setFormValues((current) => ({
           ...current,
