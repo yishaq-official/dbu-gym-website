@@ -64,9 +64,15 @@ final class MemberService implements MemberServiceInterface
         }
 
         $userId = (int) $user['id'];
+        $email = strtolower(trim((string) $payload['email']));
+        $existing = $this->users->findByEmail($email);
+        if ($existing && (int) ($existing['id'] ?? 0) !== $userId) {
+            throw new RuntimeException('A user with this email already exists.');
+        }
+
         $updatedUser = $this->users->updateProfile($userId, [
             'name' => trim((string) $payload['name']),
-            'email' => strtolower(trim((string) $payload['email'])),
+            'email' => $email,
             'phone' => trim((string) ($payload['phone'] ?? '')),
         ]) ?? $user;
 

@@ -25,7 +25,11 @@ final class ProfileController extends BaseController
 
     public function update(Request $request, Response $response, array $user): void
     {
-        $this->ok($response, $this->members->updateProfile($user, $request->json()), 'Profile updated.');
+        try {
+            $this->ok($response, $this->members->updateProfile($user, $request->json()), 'Profile updated.');
+        } catch (RuntimeException $exception) {
+            throw new HttpException($exception->getMessage(), 422);
+        }
     }
 
     public function avatar(Request $request, Response $response, array $user): void
