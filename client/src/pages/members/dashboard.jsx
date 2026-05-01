@@ -4,6 +4,12 @@ import MemberNavbar from '../../components/MemberNavbar'
 import { useAuth } from '../../auth/useAuth'
 import { getMemberDashboard, initializeChapaPayment } from '../../lib/api'
 import { useNavigate } from 'react-router-dom'
+import {
+  membershipPackages,
+  getMembershipPackagePrice,
+  getMembershipPackageLabel,
+  normalizeMembershipPackageKey,
+} from '../../lib/pricing'
 
 const member = {
   name: 'Mekdes Alemu',
@@ -66,16 +72,9 @@ export default function Dashboard() {
   const planInfo = dashboard?.plan || {}
   const resolvedName = memberInfo.name || displayName
 
-  const renewalPlan = renewPlan || planInfo.type || member.planType
-  const priceMap = {
-    Monthly: 300,
-    '3Months': 800,
-    '6Months': 1500,
-    '1Year': 2500,
-  }
-  const basePrice = priceMap[renewalPlan] || 0
+  const renewalPlan = renewPlan || normalizeMembershipPackageKey(planInfo.type || member.planType)
   const isUniversityMember = (memberInfo.member_type || '').toLowerCase() === 'university'
-  const estimatedPrice = isUniversityMember ? Math.round(basePrice * 0.8) : basePrice
+  const estimatedPrice = getMembershipPackagePrice(renewalPlan, isUniversityMember ? 'university' : 'external')
   const navigate = useNavigate();
 
   const handleRenew = async () => {
@@ -245,9 +244,11 @@ export default function Dashboard() {
               <div className="mt-4 grid gap-4 sm:grid-cols-3">
                 <div>
                   <p className="text-xs uppercase tracking-[0.2em] text-[var(--text-soft)]">
-                    Type / Duration
+                    Membership Package
                   </p>
-                  <p className="mt-2 text-sm font-semibold">{planInfo.type || member.planType}</p>
+                  <p className="mt-2 text-sm font-semibold">
+                    {getMembershipPackageLabel(normalizeMembershipPackageKey(planInfo.type || member.planType)) || planInfo.type || member.planType}
+                  </p>
                 </div>
                 <div>
                   <p className="text-xs uppercase tracking-[0.2em] text-[var(--text-soft)]">
@@ -348,17 +349,20 @@ export default function Dashboard() {
               </span>
             </div>
             <label className="mt-4 block text-sm text-[var(--text-muted)]">
-              Plan Duration
+              Membership Package
               <select
                 value={renewPlan}
                 onChange={(event) => setRenewPlan(event.target.value)}
                 className="mt-2 w-full rounded-2xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 text-sm text-[var(--text)] focus:border-[var(--accent)] focus:outline-none"
               >
-                <option value="">Keep Current ({planInfo.type || member.planType})</option>
-                <option value="Monthly">Monthly</option>
-                <option value="3Months">3 Months</option>
-                <option value="6Months">6 Months</option>
-                <option value="1Year">1 Year</option>
+                <option value="">
+                  Keep Current ({getMembershipPackageLabel(normalizeMembershipPackageKey(planInfo.type || member.planType)) || planInfo.type || member.planType})
+                </option>
+                {membershipPackages.map((plan) => (
+                  <option key={plan.key} value={plan.key}>
+                    {plan.label}
+                  </option>
+                ))}
               </select>
             </label>
 

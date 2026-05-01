@@ -55,7 +55,17 @@ final class AuthService implements AuthServiceInterface
             $memberType = in_array($memberTypeRaw, ['university', 'external'], true) ? $memberTypeRaw : 'university';
 
             $membershipType = strtolower((string) ($payload['membership_type'] ?? 'monthly'));
-            $allowedPlans = ['monthly', '3months', '6months', '1year'];
+            $membershipType = str_replace([' ', '_'], '-', trim($membershipType));
+            $membershipType = match ($membershipType) {
+                'strengthtraining', 'strengthtrainingdubbell', 'strength' => 'strength-training',
+                'cardiotraining', 'cardio' => 'cardio-training',
+                'aerobicstraining', 'aerobics' => 'aerobics-training',
+                'viptraining', 'vip' => 'vip-training',
+                '3month' => '3months',
+                'yearly', 'annual' => '1year',
+                default => $membershipType,
+            };
+            $allowedPlans = ['strength-training', 'cardio-training', 'aerobics-training', 'vip-training', 'monthly', '3months', '6months', '1year'];
             if (!in_array($membershipType, $allowedPlans, true)) {
                 $membershipType = 'monthly';
             }
@@ -472,6 +482,10 @@ final class AuthService implements AuthServiceInterface
     private function resolvePlanCost(string $membershipType, string $memberType): float
     {
         $prices = [
+            'strength-training' => 400.0,
+            'cardio-training' => 500.0,
+            'aerobics-training' => 500.0,
+            'vip-training' => 1000.0,
             'monthly' => 300.0,
             '3months' => 800.0,
             '6months' => 1500.0,
@@ -480,11 +494,7 @@ final class AuthService implements AuthServiceInterface
 
         $base = $prices[$membershipType] ?? 300.0;
 
-        if ($memberType === 'university') {
-            return round($base * 0.8, 2);
-        }
-
-        return $base;
+        return $memberType === 'university' ? round($base * 0.8, 2) : $base;
     }
 
     private function generateMemberId(string $memberType): string

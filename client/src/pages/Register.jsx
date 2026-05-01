@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useMemo, useState } from 'react'
 import { initializeChapaPayment } from '../lib/api'
+import { membershipPackages, getMembershipPackagePrice } from '../lib/pricing'
 
 function DumbbellIcon({ className }) {
   return (
@@ -114,16 +115,10 @@ export default function Register() {
     return `${prefix}-${year}-${seq}`
   }, [isUniversity])
 
+  const selectedPackage = membershipPackages.find((plan) => plan.key === formValues.membership_type)
   const estimatedTotal = useMemo(() => {
-    const prices = {
-      Monthly: 300,
-      '3Months': 800,
-      '6Months': 1500,
-      '1Year': 2500,
-    }
-    const base = prices[formValues.membership_type] || 0
-    return isUniversity ? Math.round(base * 0.8) : base
-  }, [formValues.membership_type, isUniversity])
+    return getMembershipPackagePrice(formValues.membership_type, memberType)
+  }, [formValues.membership_type, memberType])
 
   const handleChange = (event) => {
     const { name, value } = event.target
@@ -514,7 +509,7 @@ export default function Register() {
                   </div>
 
                   <label className="block text-sm text-white/70">
-                    Membership Plan
+                    Membership Package
                     <select
                       name="membership_type"
                       value={formValues.membership_type}
@@ -524,13 +519,36 @@ export default function Register() {
                         submitted && !formValues.membership_type ? 'border-red-400/60' : 'border-white/20'
                       }`}
                     >
-                      <option value="">Select Plan Duration</option>
-                      <option value="Monthly">Monthly</option>
-                      <option value="3Months">3 Months</option>
-                      <option value="6Months">6 Months</option>
-                      <option value="1Year">1 Year</option>
+                      <option value="">Select a package</option>
+                      {membershipPackages.map((plan) => (
+                        <option key={plan.key} value={plan.key}>
+                          {plan.label}
+                        </option>
+                      ))}
                     </select>
                   </label>
+
+                  {formValues.membership_type ? (
+                    <div className="mt-4 rounded-2xl border border-white/10 bg-black/30 p-4 text-sm text-white/80">
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div>
+                          <p className="text-xs uppercase tracking-[0.3em] text-white/50">University price</p>
+                          <p className="mt-2 text-lg font-semibold text-[var(--accent)]">
+                            {selectedPackage ? `${selectedPackage.prices.university} ETB` : '—'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs uppercase tracking-[0.3em] text-white/50">External price</p>
+                          <p className="mt-2 text-lg font-semibold text-[var(--accent)]">
+                            {selectedPackage ? `${selectedPackage.prices.external} ETB` : '—'}
+                          </p>
+                        </div>
+                      </div>
+                      <p className="mt-3 text-xs text-white/60">
+                        Your selected rate is based on member type: <span className="font-semibold text-white">{isUniversity ? 'University' : 'External'}</span>
+                      </p>
+                    </div>
+                  ) : null}
 
                   {isUniversity ? (
                     <div className="grid gap-4 md:grid-cols-2">

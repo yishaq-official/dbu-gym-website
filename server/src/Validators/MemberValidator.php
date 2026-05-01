@@ -72,6 +72,10 @@ final class MemberValidator extends BaseValidator
         $normalized = strtolower(str_replace([' ', '_', '-'], '', trim($value)));
 
         return match ($normalized) {
+            'strengthtraining', 'strengthtrainingdubbell', 'strength' => 'strength-training',
+            'cardiotraining', 'cardio' => 'cardio-training',
+            'aerobicstraining', 'aerobics' => 'aerobics-training',
+            'viptraining', 'vip' => 'vip-training',
             'monthly' => 'monthly',
             '3month', '3months' => '3months',
             '6month', '6months' => '6months',

@@ -1,42 +1,4 @@
-const pricingPlans = [
-  {
-    name: 'Strength Training',
-    icon: '🏋️',
-    prices: { Internal: '400 ETB', External: '600 ETB' },
-    description: 'Dumbbell circuit training for muscle, strength, and mobility.',
-    perks: [
-      'Guided dumbbell workouts',
-      'Strength-building circuits',
-      'Technique coaching included',
-    ],
-    cta: 'Book Strength',
-  },
-  {
-    name: 'Cardio Training',
-    icon: '🚴',
-    prices: { Internal: '500 ETB', External: '700 ETB' },
-    description: 'Machine-based cardio sessions designed for endurance and power.',
-    perks: ['Treadmill + bike routines', 'Heart-rate guided training', 'Recovery tips'],
-    cta: 'Book Cardio',
-  },
-  {
-    name: 'Aerobics Training',
-    icon: '🎵',
-    prices: { Internal: '500 ETB', External: '700 ETB' },
-    description: 'High-energy aerobics classes for fun, fitness, and flexibility.',
-    perks: ['Music-driven workouts', 'Group motivation', 'Low-impact options'],
-    cta: 'Book Aerobics',
-  },
-  {
-    name: 'VIP Training',
-    icon: '✨',
-    prices: { Internal: '1000 ETB', External: '2000 ETB' },
-    description: 'Premium one-on-one coaching with priority support and perks.',
-    perks: ['Personalized training plan', 'Priority scheduling', 'Exclusive access'],
-    cta: 'Book VIP',
-    featured: true,
-  },
-]
+import { membershipPackages } from '../lib/pricing'
 
 export default function Pricing() {
   return (
@@ -60,9 +22,9 @@ export default function Pricing() {
         </div>
 
         <div className="mt-10 grid gap-6 lg:grid-cols-4">
-          {pricingPlans.map((plan) => (
+          {membershipPackages.map((plan) => (
             <div
-              key={plan.name}
+              key={plan.key}
               className={`pricing-card relative flex h-full flex-col overflow-hidden rounded-2xl p-8 text-left transition hover:-translate-y-2 card-sheen ${
                 plan.featured ? 'featured glow-ring' : ''
               }`}

@@ -175,6 +175,10 @@ final class MemberService implements MemberServiceInterface
     private function resolvePlanCost(string $membershipType, string $memberType): float
     {
         $prices = [
+            'strength-training' => 400.0,
+            'cardio-training' => 500.0,
+            'aerobics-training' => 500.0,
+            'vip-training' => 1000.0,
             'monthly' => 300.0,
             '3months' => 800.0,
             '6months' => 1500.0,
