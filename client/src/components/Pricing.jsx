@@ -1,28 +1,40 @@
 const pricingPlans = [
   {
-    name: 'Day Pass',
-    price: '15 ETB',
-    term: '/day',
-    description: 'Perfect for travelers.',
-    perks: ['Single Day Access', 'Locker Room Access', 'No Guest Pass'],
-    cta: 'Get Day Pass',
+    name: 'Strength Training',
+    icon: '🏋️',
+    prices: { Internal: '400 ETB', External: '600 ETB' },
+    description: 'Dumbbell circuit training for muscle, strength, and mobility.',
+    perks: [
+      'Guided dumbbell workouts',
+      'Strength-building circuits',
+      'Technique coaching included',
+    ],
+    cta: 'Book Strength',
   },
   {
-    name: 'Monthly',
-    price: '800 ETB',
-    term: '/month',
-    description: 'Flexible commitment.',
-    perks: ['24/7 Gym Access', 'Free Group Classes', '1 Guest Pass/mo'],
-    cta: 'Join Monthly',
+    name: 'Cardio Training',
+    icon: '🚴',
+    prices: { Internal: '500 ETB', External: '700 ETB' },
+    description: 'Machine-based cardio sessions designed for endurance and power.',
+    perks: ['Treadmill + bike routines', 'Heart-rate guided training', 'Recovery tips'],
+    cta: 'Book Cardio',
+  },
+  {
+    name: 'Aerobics Training',
+    icon: '🎵',
+    prices: { Internal: '500 ETB', External: '700 ETB' },
+    description: 'High-energy aerobics classes for fun, fitness, and flexibility.',
+    perks: ['Music-driven workouts', 'Group motivation', 'Low-impact options'],
+    cta: 'Book Aerobics',
+  },
+  {
+    name: 'VIP Training',
+    icon: '✨',
+    prices: { Internal: '1000 ETB', External: '2000 ETB' },
+    description: 'Premium one-on-one coaching with priority support and perks.',
+    perks: ['Personalized training plan', 'Priority scheduling', 'Exclusive access'],
+    cta: 'Book VIP',
     featured: true,
-  },
-  {
-    name: 'Yearly',
-    price: '8000 ETB',
-    term: '/year',
-    description: "Save 2 months' fees.",
-    perks: ['All Monthly Perks', 'Private Intro Session', 'Unlimited Guest Passes'],
-    cta: 'Go Yearly',
   },
 ]
 
@@ -35,19 +47,19 @@ export default function Pricing() {
             Pricing
           </p>
           <h2 className="font-display mt-4 text-3xl font-semibold text-[var(--text)] md:text-4xl">
-            Choose your plan
+            4 Training Packages, Clear Campus Pricing
           </h2>
           <p className="mt-4 text-sm text-[var(--text-muted)] md:text-base">
-            Flexible options for every training style.
+            Internal and external rates for every member level, from dumbbells to VIP.
           </p>
         </div>
 
         <div className="mt-10 rounded-2xl border border-[var(--accent)] bg-[var(--surface)] px-6 py-5 text-sm text-[var(--text-muted)] glow-ring">
-          <span className="font-semibold text-[var(--text)]">Staff member?</span>{' '}
-          Log in with your employee or student ID to apply a 20% discount.
+          <span className="font-semibold text-[var(--text)]">Inside university</span>{' '}
+          users enjoy reduced internal pricing. External users pay standard public rates.
         </div>
 
-        <div className="mt-10 grid gap-6 lg:grid-cols-3">
+        <div className="mt-10 grid gap-6 lg:grid-cols-4">
           {pricingPlans.map((plan) => (
             <div
               key={plan.name}
@@ -57,31 +69,46 @@ export default function Pricing() {
             >
               {plan.featured ? (
                 <span className="absolute -top-3 left-6 rounded-full bg-[var(--accent)] px-3 py-1 text-xs font-semibold uppercase tracking-wider text-black">
-                  Best Value
+                  VIP
                 </span>
               ) : null}
-              <h3 className="text-lg font-semibold text-[var(--text)]">
-                {plan.name}
-              </h3>
-              <p className="price mt-3 font-semibold text-[var(--text)]">
-                {plan.price}
-                <span className="ml-2 text-sm font-normal text-[var(--text-soft)]">
-                  {plan.term}
+
+              <div className="flex items-center gap-4">
+                <span className="grid h-14 w-14 place-items-center rounded-3xl bg-[var(--accent)]/15 text-3xl">
+                  {plan.icon}
                 </span>
-              </p>
-              <p className="mt-2 text-sm text-[var(--text-muted)]">
-                {plan.description}
-              </p>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[var(--accent)]">
+                    {plan.name}
+                  </p>
+                  <p className="mt-2 text-sm text-[var(--text-muted)]">
+                    {plan.description}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-6 rounded-3xl border border-[var(--border)] bg-[var(--bg)] p-5 text-sm text-[var(--text)] shadow-sm">
+                {Object.entries(plan.prices).map(([label, amount]) => (
+                  <div key={label} className="flex items-center justify-between gap-4 py-3">
+                    <span className="font-medium text-[var(--text-soft)]">{label}</span>
+                    <span className="rounded-full bg-[var(--accent)]/10 px-3 py-1 text-sm font-semibold text-[var(--accent)]">
+                      {amount}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
               <ul className="mt-6 space-y-3 text-sm text-[var(--text-muted)]">
                 {plan.perks.map((perk) => (
-                  <li key={perk} className="flex items-center gap-2">
-                    <span className="text-[var(--accent)]">•</span>
-                    {perk}
+                  <li key={perk} className="flex items-center gap-3">
+                    <span className="text-[var(--accent)]">✓</span>
+                    <span>{perk}</span>
                   </li>
                 ))}
               </ul>
+
               <div className="mt-auto pt-8">
-                <button className="w-full rounded-full border border-[var(--accent)] px-4 py-3 text-sm font-semibold text-[var(--text)] transition hover:bg-[var(--accent)] hover:text-black">
+                <button className="w-full rounded-full border border-[var(--accent)] bg-[var(--accent)]/10 px-4 py-3 text-sm font-semibold text-[var(--text)] transition hover:bg-[var(--accent)] hover:text-black">
                   {plan.cta}
                 </button>
               </div>
