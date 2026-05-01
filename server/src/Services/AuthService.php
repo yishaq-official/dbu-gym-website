@@ -11,6 +11,7 @@ use Yishaq\Server\Core\Exceptions\ValidationException;
 use Yishaq\Server\Helpers\JwtHelper;
 use Yishaq\Server\Models\AuthTokenSession;
 use Yishaq\Server\Models\PasswordResetToken;
+use Yishaq\Server\Services\MailService;
 use Yishaq\Server\Validators\AuthValidator;
 
 final class AuthService implements AuthServiceInterface
@@ -21,6 +22,7 @@ final class AuthService implements AuthServiceInterface
     private AuthTokenSession $tokenSessions;
     private PasswordResetToken $resetTokens;
     private JwtHelper $jwt;
+    private MailService $mailer;
 
     public function __construct(
         ?UserService $users = null,
@@ -28,7 +30,8 @@ final class AuthService implements AuthServiceInterface
         ?MembershipService $memberships = null,
         ?AuthTokenSession $tokenSessions = null,
         ?PasswordResetToken $resetTokens = null,
-        ?JwtHelper $jwt = null
+        ?JwtHelper $jwt = null,
+        ?MailService $mailer = null
     ) {
         $this->users = $users ?? new UserService();
         $this->profiles = $profiles ?? new MemberProfileService();
@@ -36,6 +39,7 @@ final class AuthService implements AuthServiceInterface
         $this->tokenSessions = $tokenSessions ?? new AuthTokenSession();
         $this->resetTokens = $resetTokens ?? new PasswordResetToken();
         $this->jwt = $jwt ?? new JwtHelper();
+        $this->mailer = $mailer ?? new MailService();
     }
 
     public function register(array $payload): array
@@ -287,6 +291,8 @@ final class AuthService implements AuthServiceInterface
 
         $user = $this->users->findByEmail($email);
         $plainToken = bin2hex(random_bytes(32));
+        $frontendUrl = rtrim((string) AppContext::config()->get('services.frontend_url', ''), '/');
+        $resetUrl = $frontendUrl . '/reset-password?email=' . rawurlencode($email) . '&token=' . rawurlencode($plainToken);
 
         if ($user) {
             $hashedToken = password_hash($plainToken, PASSWORD_DEFAULT);
@@ -295,6 +301,7 @@ final class AuthService implements AuthServiceInterface
             }
 
             $this->resetTokens->store($email, $hashedToken);
+            $this->mailer->sendPasswordResetEmail($email, $resetUrl);
         }
 
         $response = [
@@ -302,10 +309,8 @@ final class AuthService implements AuthServiceInterface
         ];
 
         if ($user && $this->isDebug()) {
-            $frontendUrl = rtrim((string) AppContext::config()->get('services.frontend_url', ''), '/');
             $response['reset_token'] = $plainToken;
-            $response['reset_url'] = $frontendUrl . '/reset-password?email=' . rawurlencode($email)
-                . '&token=' . rawurlencode($plainToken);
+            $response['reset_url'] = $resetUrl;
         }
 
         return $response;
