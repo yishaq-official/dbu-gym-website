@@ -37,10 +37,19 @@ final class PaymentService implements PaymentServiceInterface
     public function initializeChapaPayment(array $payload): array
     {
         $validator = new PaymentValidator();
-        $errors = array_merge(
-            $validator->validateInitialize($payload),
-            (new AuthValidator(max(8, (int) AppContext::config()->get('auth.password.min_length', 8))))->validateRegister($payload)
-        );
+        $errors = $validator->validateInitialize($payload);
+
+        $email = strtolower(trim((string) ($payload['email'] ?? '')));
+        $isRenewal = !empty($payload['renewal']) || !empty($payload['is_renewal']);
+        $existingUser = $email !== '' ? $this->users->findByEmail($email) : null;
+
+        if (!$existingUser || !$isRenewal) {
+            $errors = array_merge(
+                $errors,
+                (new AuthValidator(max(8, (int) AppContext::config()->get('auth.password.min_length', 8))))->validateRegister($payload)
+            );
+        }
+
         if ($errors !== []) {
             throw new ValidationException($errors);
         }
@@ -64,27 +73,42 @@ final class PaymentService implements PaymentServiceInterface
         $registrationPayload['member_type'] = $memberType;
         unset($registrationPayload['return_url'], $registrationPayload['callback_url'], $registrationPayload['membership_plan']);
 
-        $this->createPending([
+        $pendingPayload = [
             'tx_ref' => $txRef,
             'status' => 'pending',
             'amount' => $amount,
             'currency' => $currency,
-            'email' => strtolower(trim((string) $payload['email'])),
+            'email' => $email,
             'registration_payload' => $registrationPayload,
-        ]);
+        ];
+
+        if ($existingUser && $isRenewal) {
+            $pendingPayload['user_id'] = (int) $existingUser['id'];
+            $membership = $this->memberships->createRenewal(
+                (int) $existingUser['id'],
+                $membershipType,
+                $amount,
+                $currency
+            );
+            if (!empty($membership['id'])) {
+                $pendingPayload['membership_id'] = (int) $membership['id'];
+            }
+        }
+
+        $this->createPending($pendingPayload);
 
         $names = $this->splitName((string) $payload['name']);
         $phoneNumber = $this->chapaPhoneNumber((string) ($payload['phone'] ?? ''));
         $chapaPayload = [
             'amount' => (string) $amount,
             'currency' => $currency,
-            'email' => strtolower(trim((string) $payload['email'])),
+            'email' => $email,
             'first_name' => $names['first_name'],
             'last_name' => $names['last_name'],
             'tx_ref' => $txRef,
             'customization' => [
                 'title' => 'DBU Membership',
-                'description' => 'Membership registration payment',
+                'description' => $isRenewal ? 'Membership renewal payment' : 'Membership registration payment',
             ],
         ];
 
@@ -170,14 +194,22 @@ final class PaymentService implements PaymentServiceInterface
         }
 
         $userId = (int) $user['id'];
-        $membership = $this->memberships->findLatestByUserId($userId);
+        $membership = null;
+        if (!empty($transaction['membership_id'])) {
+            $membership = $this->memberships->findById((int) $transaction['membership_id']);
+        }
+
+        if (!$membership) {
+            $membership = $this->memberships->findLatestByUserId($userId);
+        }
+
         if (!$membership || empty($membership['id'])) {
             throw new RuntimeException('Unable to locate member membership.');
         }
 
         $membership = $this->memberships->markPaymentPaid(
             (int) $membership['id'],
-            (string) ($membership['membership_type'] ?? $registrationPayload['membership_type'] ?? 'monthly')
+            (string) ($registrationPayload['membership_type'] ?? ($membership['membership_type'] ?? 'monthly'))
         );
 
         $this->markSuccess($txRef, $gatewayResponse);

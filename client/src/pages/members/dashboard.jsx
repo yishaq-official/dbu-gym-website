@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import Footer from '../../components/Footer'
 import MemberNavbar from '../../components/MemberNavbar'
 import { useAuth } from '../../auth/useAuth'
-import { getMemberDashboard, renewMembership } from '../../lib/api'
+import { getMemberDashboard, initializeChapaPayment } from '../../lib/api'
 import { useNavigate } from 'react-router-dom'
 
 const member = {
@@ -30,6 +30,7 @@ export default function Dashboard() {
   const [renewing, setRenewing] = useState(false)
   const [showRenewModal, setShowRenewModal] = useState(false)
   const [renewPlan, setRenewPlan] = useState('')
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
 
   useEffect(() => {
     let active = true
@@ -50,6 +51,14 @@ export default function Dashboard() {
 
     return () => {
       active = false
+    }
+  }, [refreshTrigger])
+
+  useEffect(() => {
+    const shouldRefresh = window.localStorage.getItem('dbu_force_dashboard_refresh') === 'true'
+    if (shouldRefresh) {
+      window.localStorage.removeItem('dbu_force_dashboard_refresh')
+      setRefreshTrigger(Date.now())
     }
   }, [])
 
@@ -72,15 +81,43 @@ export default function Dashboard() {
   const handleRenew = async () => {
     setError('')
     setRenewing(true)
+
+    const membershipType = renewalPlan
+    const memberType = (memberInfo.member_type || user?.member_type || 'university').toString()
+    const customerName = resolvedName
+    const customerEmail = user?.email || memberInfo.email || ''
+    const customerPhone = user?.phone || memberInfo.phone || ''
+
+    if (!customerEmail) {
+      setError('Your account email is required to start payment.')
+      setRenewing(false)
+      return
+    }
+
     try {
-      const data = await renewMembership({
-        membership_type: renewPlan || planInfo.type || member.planType,
+      const origin = window.location.origin
+      const response = await initializeChapaPayment({
+        renewal: true,
+        name: customerName,
+        email: customerEmail,
+        phone: customerPhone,
+        membership_type: membershipType,
+        member_type: memberType,
+        return_url: `${origin}/payments/chapa/return?source=renewal`,
       })
-      setDashboard(data?.data || dashboard)
-      setShowRenewModal(false)
-      setRenewPlan('')
+
+      const checkoutUrl = response?.data?.checkout_url || response?.checkout_url
+      const txRef = response?.data?.tx_ref || response?.tx_ref
+      if (!checkoutUrl) {
+        throw new Error('Missing payment checkout URL.')
+      }
+      if (txRef) {
+        window.localStorage.setItem('dbu_pending_tx_ref', txRef)
+      }
+
+      window.location.assign(checkoutUrl)
     } catch (err) {
-      setError(err?.message || 'Failed to renew membership.')
+      setError(err?.message || 'Failed to start payment.')
     } finally {
       setRenewing(false)
     }

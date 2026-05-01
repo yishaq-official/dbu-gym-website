@@ -9,6 +9,11 @@ export default function PaymentReturn() {
   const [message, setMessage] = useState('Verifying your payment...')
   const [details, setDetails] = useState('')
 
+  const source = useMemo(
+    () => searchParams.get('source') || '',
+    [searchParams]
+  )
+
   const txRef = useMemo(
     () =>
       searchParams.get('tx_ref') ||
@@ -70,10 +75,19 @@ export default function PaymentReturn() {
         if (response?.data?.status === 'success') {
           window.localStorage.removeItem('dbu_pending_tx_ref')
           setStatus('success')
-          setMessage('Payment verified. Redirecting to pending approval page...')
+          setMessage(
+            source === 'renewal'
+              ? 'Payment verified. Redirecting to dashboard...'
+              : 'Payment verified. Redirecting to pending approval page...'
+          )
           setDetails('')
           window.setTimeout(() => {
-            navigate(`/pending-approval?tx_ref=${encodeURIComponent(txRef)}`, { replace: true })
+            if (source === 'renewal') {
+              window.localStorage.setItem('dbu_force_dashboard_refresh', 'true')
+              navigate('/members/dashboard', { replace: true })
+            } else {
+              navigate(`/pending-approval?tx_ref=${encodeURIComponent(txRef)}`, { replace: true })
+            }
           }, 1200)
           return
         }
@@ -96,7 +110,7 @@ export default function PaymentReturn() {
     return () => {
       active = false
     }
-  }, [navigate, txRef])
+}, [navigate, source, txRef])
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_20%_10%,rgba(81,204,249,0.25),transparent_35%),radial-gradient(circle_at_90%_85%,rgba(16,185,129,0.15),transparent_35%),linear-gradient(145deg,#070b10,#101826)] text-[var(--text)]">
@@ -119,10 +133,10 @@ export default function PaymentReturn() {
           {status === 'failed' ? (
             <div className="mt-6 space-y-3">
               <Link
-                to="/register"
+                to={source === 'renewal' ? '/members/dashboard' : '/register'}
                 className="inline-flex rounded-full bg-[var(--accent)] px-5 py-2 text-sm font-semibold text-black"
               >
-                Back to Registration
+                {source === 'renewal' ? 'Back to Dashboard' : 'Back to Registration'}
               </Link>
               <p className="text-xs text-slate-300/70">Reference: {txRef || 'N/A'}</p>
             </div>

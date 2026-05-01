@@ -40,6 +40,11 @@ final class MembershipService
         $this->memberships->markPaymentFailed($id);
     }
 
+    public function findById(int $id): ?array
+    {
+        return $this->memberships->findById($id);
+    }
+
     public function createRenewal(int $userId, string $membershipType, float $planCost, string $currency = 'ETB'): array
     {
         $id = $this->memberships->create([
