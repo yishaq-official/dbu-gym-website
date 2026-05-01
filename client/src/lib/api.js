@@ -281,6 +281,12 @@ export async function downloadSystemBackup() {
   URL.revokeObjectURL(url)
 }
 
+export async function getAuditLogs(limit = 50) {
+  return request(`/api/admin/audit?limit=${encodeURIComponent(limit)}`, {
+    method: 'GET',
+  })
+}
+
 export async function uploadSystemLogo(file) {
   const formData = new FormData()
   formData.append('logo', file)

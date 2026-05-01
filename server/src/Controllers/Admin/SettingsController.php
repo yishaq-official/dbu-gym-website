@@ -39,7 +39,18 @@ final class SettingsController extends BaseController
         if ($settings && isset($settings['logo_path'])) {
             $settings['logo_url'] = $this->assetUrl($settings['logo_path']);
         }
-        $this->ok($response, ['settings' => $settings], 'Settings fetched.');
+
+        $backupPath = $this->backup->latestBackupFile();
+        $backup = null;
+        if ($backupPath !== null) {
+            $backup = [
+                'filename' => basename($backupPath),
+                'created_at' => date(DATE_ATOM, filemtime($backupPath)),
+                'url' => $this->assetUrl('storage/backups/' . basename($backupPath)),
+            ];
+        }
+
+        $this->ok($response, ['settings' => $settings, 'backup' => $backup], 'Settings fetched.');
     }
 
     public function update(Request $request, Response $response, array $user): void

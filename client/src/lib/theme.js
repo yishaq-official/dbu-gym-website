@@ -29,6 +29,9 @@ export function applyAccentColor(accent) {
   const root = document.documentElement
   root.style.setProperty('--accent', accent)
   root.style.setProperty('--accent-strong', shadeColor(accent, -12))
+  root.style.setProperty('--accent-bg', `${accent}1a`)
+  root.style.setProperty('--accent-border', `${accent}40`)
+  root.style.setProperty('--accent-text', '#000000')
   const rgb = hexToRgb(accent)
   if (rgb) {
     root.style.setProperty('--accent-glow', `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.35)`)

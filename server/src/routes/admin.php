@@ -7,6 +7,7 @@ use Yishaq\Server\Controllers\Admin\DashboardController;
 use Yishaq\Server\Controllers\Admin\MemberController;
 use Yishaq\Server\Controllers\Admin\ProfileController;
 use Yishaq\Server\Controllers\Admin\SettingsController;
+use Yishaq\Server\Controllers\Admin\AuditController;
 use Yishaq\Server\Core\Request;
 use Yishaq\Server\Core\Response;
 use Yishaq\Server\Middleware\AuthMiddleware;
@@ -118,4 +119,9 @@ $router->post('/api/admin/settings/backup', static function (Request $request, R
 $router->get('/api/admin/settings/backup/download', static function (Request $request, Response $response): void {
     $user = adminRequireAuth($request);
     (new SettingsController())->downloadBackup($request, $response, $user);
+});
+
+$router->get('/api/admin/audit', static function (Request $request, Response $response): void {
+    $user = adminRequireAuth($request);
+    (new AuditController())->index($request, $response, $user);
 });
