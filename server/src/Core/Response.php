@@ -42,6 +42,18 @@ final class Response
         $this->sendHeaders();
     }
 
+    public function raw(string $body, array $headers = [], int $status = 200): void
+    {
+        $this->status($status);
+
+        foreach ($headers as $name => $value) {
+            $this->header($name, $value);
+        }
+
+        $this->sendHeaders();
+        echo $body;
+    }
+
     private function sendHeaders(): void
     {
         http_response_code($this->status);

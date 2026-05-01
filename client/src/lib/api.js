@@ -245,6 +245,42 @@ export async function updateSystemSettings(payload) {
   })
 }
 
+export async function triggerSystemBackup() {
+  return request('/api/admin/settings/backup', {
+    method: 'POST',
+  })
+}
+
+export async function downloadSystemBackup() {
+  const response = await fetch(`${API_BASE}/api/admin/settings/backup/download`, {
+    headers: {
+      Accept: 'application/json',
+      ...getAuthHeaders(),
+    },
+    method: 'GET',
+  })
+
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => ({}))
+    const message = errorBody.message || 'Backup download failed'
+    throw new Error(message)
+  }
+
+  const blob = await response.blob()
+  const contentDisposition = response.headers.get('Content-Disposition') || ''
+  const match = contentDisposition.match(/filename="?([^";]+)"?/) || []
+  const filename = match[1] || `dbugym-backup-${new Date().toISOString()}.json`
+
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}
+
 export async function uploadSystemLogo(file) {
   const formData = new FormData()
   formData.append('logo', file)

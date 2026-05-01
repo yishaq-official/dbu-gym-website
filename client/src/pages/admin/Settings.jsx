@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import AdminNavbar from '../../components/AdminNavbar'
 import Footer from '../../components/Footer'
-import { getSystemSettings, updateSystemSettings, uploadSystemLogo } from '../../lib/api'
+import {
+  getSystemSettings,
+  updateSystemSettings,
+  uploadSystemLogo,
+  triggerSystemBackup,
+  downloadSystemBackup,
+} from '../../lib/api'
 import { applyAccentColor } from '../../lib/theme'
 
 const defaultSettings = {
@@ -37,6 +43,8 @@ export default function AdminSettings() {
   const [loading, setLoading] = useState(true)
   const [logoUrl, setLogoUrl] = useState('')
   const [logoUploading, setLogoUploading] = useState(false)
+  const [backupProcessing, setBackupProcessing] = useState(false)
+  const [backupFileName, setBackupFileName] = useState('')
   const [theme, setTheme] = useState(
     document.documentElement.dataset.theme || 'dark'
   )
@@ -168,12 +176,15 @@ export default function AdminSettings() {
         email_notifications: settings.emailNotifications,
         sms_notifications: settings.smsNotifications,
         sender_email: settings.senderEmail,
-        api_key: settings.apiKey === '*************' ? null : settings.apiKey,
         auto_backup: settings.autoBackup,
         backup_frequency: settings.backupFrequency,
         theme: settings.theme,
         accent_color: settings.accentColor,
         layout_style: settings.layoutStyle,
+      }
+
+      if (settings.apiKey !== '*************') {
+        payload.api_key = settings.apiKey
       }
 
       await updateSystemSettings(payload)
@@ -190,7 +201,39 @@ export default function AdminSettings() {
   }
 
   const handleReload = () => {
-    setSettings(defaultSettings)
+    setSettings(savedSnapshot)
+    setTheme(savedSnapshot.theme)
+    document.documentElement.dataset.theme = savedSnapshot.theme
+    window.localStorage.setItem('dbu-theme', savedSnapshot.theme)
+  }
+
+  const handleTriggerBackup = async () => {
+    setBackupProcessing(true)
+    setError('')
+    try {
+      const data = await triggerSystemBackup()
+      setBackupFileName(data?.data?.backup_file || '')
+      setToast({ type: 'success', message: data?.message || 'Backup created successfully.' })
+    } catch (err) {
+      setError(err?.message || 'Backup trigger failed.')
+      setToast({ type: 'error', message: err?.message || 'Backup trigger failed.' })
+    } finally {
+      setBackupProcessing(false)
+    }
+  }
+
+  const handleDownloadBackup = async () => {
+    setBackupProcessing(true)
+    setError('')
+    try {
+      await downloadSystemBackup()
+      setToast({ type: 'success', message: 'Backup downloaded successfully.' })
+    } catch (err) {
+      setError(err?.message || 'Backup download failed.')
+      setToast({ type: 'error', message: err?.message || 'Backup download failed.' })
+    } finally {
+      setBackupProcessing(false)
+    }
   }
 
   const handleLogoChange = async (event) => {
@@ -211,27 +254,6 @@ export default function AdminSettings() {
       setLogoUploading(false)
       event.target.value = ''
     }
-  }
-
-  const handleDownloadBackup = () => {
-    const data = {
-      users: [],
-      admins: [],
-      settings,
-      logs: [],
-      passwordResets: [],
-    }
-    const dataStr = JSON.stringify(data, null, 2)
-    const blob = new Blob([dataStr], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    const date = new Date().toISOString().split('T')[0]
-    link.download = `dbu_gym_backup_${date}.json`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    URL.revokeObjectURL(url)
   }
 
   const previewTheme = useMemo(() => settings.theme, [settings.theme])
@@ -629,17 +651,27 @@ export default function AdminSettings() {
                   <button
                     type="button"
                     onClick={handleDownloadBackup}
-                    className="rounded-full border border-emerald-400/50 px-4 py-2 text-sm font-semibold text-emerald-200"
+                    disabled={backupProcessing}
+                    className="rounded-full border border-emerald-400/50 px-4 py-2 text-sm font-semibold text-emerald-200 disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    <i className="fas fa-download mr-2"></i>Download Latest Backup
+                    <i className="fas fa-download mr-2"></i>
+                    {backupProcessing ? 'Downloading...' : 'Download Latest Backup'}
                   </button>
                   <button
                     type="button"
-                    className="rounded-full border border-[var(--border)] px-4 py-2 text-sm font-semibold text-[var(--text)]"
+                    onClick={handleTriggerBackup}
+                    disabled={backupProcessing}
+                    className="rounded-full border border-[var(--border)] px-4 py-2 text-sm font-semibold text-[var(--text)] disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    <i className="fas fa-redo mr-2"></i>Trigger New Backup
+                    <i className="fas fa-redo mr-2"></i>
+                    {backupProcessing ? 'Creating...' : 'Trigger New Backup'}
                   </button>
                 </div>
+                {backupFileName ? (
+                  <p className="mt-3 text-xs text-[var(--text-soft)]">
+                    Latest backup: {backupFileName}
+                  </p>
+                ) : null}
               </div>
               <div className="border-t border-[var(--border)] px-6 py-4 text-right">
                 <button

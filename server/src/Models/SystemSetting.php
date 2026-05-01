@@ -13,9 +13,20 @@ final class SystemSetting extends BaseModel
 
     public function getSingleton(): ?array
     {
-        return $this->db->first(
+        $settings = $this->db->first(
             "SELECT * FROM {$this->table()} WHERE id = 1 LIMIT 1"
         );
+
+        if ($settings === null) {
+            $this->db->statement(
+                "INSERT INTO {$this->table()} (id) VALUES (1)"
+            );
+            $settings = $this->db->first(
+                "SELECT * FROM {$this->table()} WHERE id = 1 LIMIT 1"
+            );
+        }
+
+        return $settings;
     }
 
     public function updateSingleton(array $attributes): int
@@ -32,11 +43,30 @@ final class SystemSetting extends BaseModel
             $bindings[$column] = $value;
         }
 
+        $exists = $this->rowExists();
         $setSql = implode(', ', $setClauses);
 
-        return $this->db->statement(
+        $updated = $this->db->statement(
             "UPDATE {$this->table()} SET {$setSql}, updated_at = NOW() WHERE id = 1",
             $bindings
+        );
+
+        if (!$exists) {
+            $columns = implode(', ', array_map(static fn(string $column): string => "`{$column}`", array_keys($attributes)));
+            $placeholders = implode(', ', array_map(static fn(string $column): string => ":{$column}", array_keys($attributes)));
+            $this->db->statement(
+                "INSERT INTO {$this->table()} (id, {$columns}, updated_at) VALUES (1, {$placeholders}, NOW())",
+                $bindings
+            );
+        }
+
+        return $updated;
+    }
+
+    private function rowExists(): bool
+    {
+        return (bool) $this->db->first(
+            "SELECT id FROM {$this->table()} WHERE id = 1 LIMIT 1"
         );
     }
 }

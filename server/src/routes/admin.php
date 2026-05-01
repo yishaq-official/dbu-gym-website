@@ -109,3 +109,13 @@ $router->post('/api/admin/settings/logo', static function (Request $request, Res
     $user = adminRequireAuth($request);
     (new SettingsController())->logo($request, $response, $user);
 });
+
+$router->post('/api/admin/settings/backup', static function (Request $request, Response $response): void {
+    $user = adminRequireAuth($request);
+    (new SettingsController())->triggerBackup($request, $response, $user);
+});
+
+$router->get('/api/admin/settings/backup/download', static function (Request $request, Response $response): void {
+    $user = adminRequireAuth($request);
+    (new SettingsController())->downloadBackup($request, $response, $user);
+});
