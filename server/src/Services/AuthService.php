@@ -291,10 +291,11 @@ final class AuthService implements AuthServiceInterface
 
         $user = $this->users->findByEmail($email);
         $plainToken = bin2hex(random_bytes(32));
-        $frontendUrl = rtrim((string) AppContext::config()->get('services.frontend_url', ''), '/');
-        $resetUrl = $frontendUrl . '/reset-password?email=' . rawurlencode($email) . '&token=' . rawurlencode($plainToken);
 
         if ($user) {
+            $frontendUrl = rtrim((string) AppContext::config()->get('services.frontend_url', ''), '/');
+            $resetUrl = $frontendUrl . '/reset-password?email=' . rawurlencode($email) . '&token=' . rawurlencode($plainToken);
+
             $hashedToken = password_hash($plainToken, PASSWORD_DEFAULT);
             if ($hashedToken === false) {
                 throw new RuntimeException('Failed to secure reset token.');
@@ -304,14 +305,9 @@ final class AuthService implements AuthServiceInterface
             $this->mailer->sendPasswordResetEmail($email, $resetUrl);
         }
 
-        $response = [
+        return [
             'email' => $email,
         ];
-
-        if ($user && $this->isDebug()) {
-            $response['reset_token'] = $plainToken;
-            $response['reset_url'] = $resetUrl;
-        }
 
         return $response;
     }

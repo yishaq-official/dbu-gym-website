@@ -49,7 +49,6 @@ export default function ForgotPassword() {
   const [email, setEmail] = useState('')
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
-  const [resetUrl, setResetUrl] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
   const handleSubmit = async (event) => {
@@ -62,15 +61,11 @@ export default function ForgotPassword() {
 
     setError('')
     setMessage('')
-    setResetUrl('')
     setSubmitting(true)
 
     try {
-      const response = await forgotPassword({ email: trimmedEmail })
-      setMessage(response.message || 'Password reset instructions are ready.')
-      if (response.data?.reset_url) {
-        setResetUrl(response.data.reset_url)
-      }
+      await forgotPassword({ email: trimmedEmail })
+      setMessage('If an account exists for that email, a reset link has been sent.')
     } catch (err) {
       setError(err?.message || 'Unable to start password reset.')
     } finally {
@@ -110,11 +105,6 @@ export default function ForgotPassword() {
               {message ? (
                 <div className="rounded-2xl border border-emerald-400/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
                   <p>{message}</p>
-                  {resetUrl ? (
-                    <Link className="mt-2 block text-[var(--accent)] hover:underline" to={resetUrl.replace(window.location.origin, '')}>
-                      Open reset page
-                    </Link>
-                  ) : null}
                 </div>
               ) : null}
               <label className="block text-sm text-white/70">
