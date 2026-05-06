@@ -16,6 +16,7 @@ final class MemberService implements MemberServiceInterface
         private readonly UserService $users = new UserService(),
         private readonly MemberProfileService $profiles = new MemberProfileService(),
         private readonly MembershipService $memberships = new MembershipService(),
+        private readonly NotificationService $notifications = new NotificationService(),
         private readonly FileService $files = new FileService()
     ) {
     }
@@ -42,25 +43,12 @@ final class MemberService implements MemberServiceInterface
             }
         }
 
-        $notifications = [];
-        if (is_int($remainingDays)) {
-            if ($remainingDays >= 0 && $remainingDays <= 5) {
-                $notifications[] = [
-                    'type' => 'payment_expiry',
-                    'severity' => 'warning',
-                    'message' => "Your membership expires in {$remainingDays} day" . ($remainingDays === 1 ? '' : 's') . '.',
-                    'remaining_days' => $remainingDays,
-                    'expiry_date' => $membership['plan_expires_at'] ?? null,
-                ];
-            } elseif ($remainingDays < 0) {
-                $notifications[] = [
-                    'type' => 'payment_expired',
-                    'severity' => 'danger',
-                    'message' => 'Your membership has expired. Renew to continue access.',
-                    'remaining_days' => $remainingDays,
-                    'expiry_date' => $membership['plan_expires_at'] ?? null,
-                ];
-            }
+        if ($userId > 0) {
+            $this->notifications->maybeCreateExpiryNotification(
+                $userId,
+                is_int($remainingDays) ? $remainingDays : null,
+                $membership['plan_expires_at'] ?? null
+            );
         }
 
         return [
@@ -73,7 +61,7 @@ final class MemberService implements MemberServiceInterface
                 'payment_status' => $membership['payment_status'] ?? null,
                 'remaining_days' => $remainingDays,
             ],
-            'notifications' => $notifications,
+            'notifications' => $userId > 0 ? $this->notifications->latestForUser($userId, 10) : [],
         ];
     }
 

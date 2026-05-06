@@ -364,6 +364,14 @@ export async function getMemberDashboard() {
   })
 }
 
+export async function getMemberNotifications(limit = 10) {
+  const cleanedLimit = Number.isFinite(Number(limit)) ? Number(limit) : 10
+  const safeLimit = Math.max(1, Math.min(50, cleanedLimit))
+  return request(`/api/member/notifications?limit=${encodeURIComponent(safeLimit)}`, {
+    method: 'GET',
+  })
+}
+
 export async function renewMembership(payload) {
   return request('/api/member/renew', {
     method: 'POST',
