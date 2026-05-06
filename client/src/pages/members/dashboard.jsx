@@ -41,17 +41,7 @@ export default function Dashboard() {
   useEffect(() => {
     let active = true
 
-    const loadDashboard = async () => {
-      try {
-        const data = await getMemberDashboard()
-        if (!active) return
-        setDashboard(data?.data || null)
-      } catch (err) {
-        if (active) setError(err?.message || 'Unable to load dashboard data.')
-      } finally {
-        if (active) setLoading(false)
-      }
-    }
+    
 
     loadDashboard()
 
