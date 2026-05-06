@@ -70,6 +70,7 @@ export default function Dashboard() {
 
   const memberInfo = dashboard?.member || {}
   const planInfo = dashboard?.plan || {}
+  const notifications = Array.isArray(dashboard?.notifications) ? dashboard.notifications : []
   const resolvedName = memberInfo.name || displayName
 
   const renewalPlan = renewPlan || normalizeMembershipPackageKey(planInfo.type || member.planType)
@@ -300,12 +301,30 @@ export default function Dashboard() {
                 Notifications
               </h3>
               <div className="mt-4 space-y-3">
-                <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-strong)] px-4 py-3 text-sm">
-                  Welcome to your dashboard! Your plan renews soon.
-                </div>
-                <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-strong)] px-4 py-3 text-sm">
-                  New class schedules are available for next week.
-                </div>
+                {notifications.length ? (
+                  notifications.map((note, idx) => {
+                    const severity = (note?.severity || '').toString().toLowerCase()
+                    const accent =
+                      severity === 'danger'
+                        ? 'border-red-400/40 bg-red-500/10 text-red-100'
+                        : severity === 'warning'
+                          ? 'border-amber-400/40 bg-amber-500/10 text-amber-50'
+                          : 'border-[var(--border)] bg-[var(--surface-strong)] text-[var(--text)]'
+
+                    return (
+                      <div
+                        key={`${note?.type || 'note'}-${idx}`}
+                        className={`rounded-2xl border px-4 py-3 text-sm ${accent}`}
+                      >
+                        {note?.message || 'Notification'}
+                      </div>
+                    )
+                  })
+                ) : (
+                  <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-strong)] px-4 py-3 text-sm text-[var(--text-muted)]">
+                    No notifications right now.
+                  </div>
+                )}
               </div>
             </section>
 
