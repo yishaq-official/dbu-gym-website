@@ -27,6 +27,20 @@ final class Membership extends BaseModel
         );
     }
 
+    public function findLatestPaidByUserId(int $userId): ?array
+    {
+        return $this->db->first(
+            "SELECT *
+             FROM {$this->table()}
+             WHERE user_id = :user_id
+               AND payment_status = 'paid'
+               AND plan_expires_at IS NOT NULL
+             ORDER BY plan_expires_at DESC, id DESC
+             LIMIT 1",
+            ['user_id' => $userId]
+        );
+    }
+
     public function create(array $payload): int
     {
         $this->db->statement(
