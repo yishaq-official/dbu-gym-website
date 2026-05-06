@@ -85,7 +85,39 @@ final class MemberService implements MemberServiceInterface
         ];
     }
 
-    
+    public function updateProfile(array $user, array $payload): array
+    {
+        $validator = new MemberValidator();
+        $errors = $validator->validateProfile($payload);
+        if ($errors !== []) {
+            throw new ValidationException($errors);
+        }
+
+        $userId = (int) $user['id'];
+        $email = strtolower(trim((string) $payload['email']));
+        $existing = $this->users->findByEmail($email);
+        if ($existing && (int) ($existing['id'] ?? 0) !== $userId) {
+            throw new RuntimeException('A user with this email already exists.');
+        }
+
+        $updatedUser = $this->users->updateProfile($userId, [
+            'name' => trim((string) $payload['name']),
+            'email' => $email,
+            'phone' => trim((string) ($payload['phone'] ?? '')),
+        ]) ?? $user;
+
+        $profile = $this->profiles->updateByUserId($userId, [
+            'department' => $payload['department'] ?? null,
+            'date_of_birth' => $payload['date_of_birth'] ?? null,
+            'emergency_contact_name' => $payload['emergency_contact_name'] ?? null,
+            'emergency_contact_phone' => $payload['emergency_contact_phone'] ?? null,
+            'address' => $payload['address'] ?? null,
+        ]) ?? [];
+
+        return [
+            'user' => $this->formatUser($updatedUser, $profile),
+        ];
+    }
 
     public function updatePassword(array $user, array $payload): void
     {
