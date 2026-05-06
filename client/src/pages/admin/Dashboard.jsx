@@ -442,6 +442,7 @@ export default function AdminDashboard() {
   const [dashboardStats, setDashboardStats] = useState(null)
   const [dashboardError, setDashboardError] = useState('')
   const [dashboardChart, setDashboardChart] = useState(null)
+  const [expiringSoon, setExpiringSoon] = useState([])
   const [membersError, setMembersError] = useState('')
   const [membersMeta, setMembersMeta] = useState({
     currentPage: 1,
@@ -522,6 +523,7 @@ export default function AdminDashboard() {
         if (!active) return
         setDashboardStats(data?.data?.stats || null)
         setDashboardChart(data?.data?.chart || null)
+        setExpiringSoon(Array.isArray(data?.data?.expiring_soon) ? data.data.expiring_soon : [])
       } catch (err) {
         if (active) setDashboardError(err?.message || 'Unable to load admin stats.')
       }
@@ -837,6 +839,59 @@ export default function AdminDashboard() {
               </div>
             </div>
           </div>
+        </div>
+
+        <div className="mt-10 rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 transition-all duration-200 hover:shadow-lg">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold">Expiring Soon</h2>
+              <p className="mt-1 text-sm text-[var(--text-muted)]">
+                Active members whose plan expires within 5 days
+              </p>
+            </div>
+            <div className="text-sm text-[var(--text-soft)]">
+              {expiringSoon.length ? `${expiringSoon.length} member(s)` : '0 members'}
+            </div>
+          </div>
+
+          {expiringSoon.length ? (
+            <div className="mt-5 overflow-x-auto rounded-2xl border border-[var(--border)]">
+              <table className="min-w-full text-left text-sm">
+                <thead className="bg-[var(--surface-strong)] text-xs uppercase tracking-[0.2em] text-[var(--text-soft)]">
+                  <tr>
+                    <th className="px-4 py-3">Member</th>
+                    <th className="px-4 py-3">Member ID</th>
+                    <th className="px-4 py-3">Plan</th>
+                    <th className="px-4 py-3">Expires</th>
+                    <th className="px-4 py-3">Days Left</th>
+                    <th className="px-4 py-3">Phone</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--border)]">
+                  {expiringSoon.map((row) => (
+                    <tr key={row.user_id} className="bg-[var(--surface)]">
+                      <td className="px-4 py-3 font-medium">{row.name || 'Unknown'}</td>
+                      <td className="px-4 py-3 font-mono text-xs">{row.member_id || 'N/A'}</td>
+                      <td className="px-4 py-3 text-xs">{row.membership_type || 'N/A'}</td>
+                      <td className="px-4 py-3 text-xs">
+                        {row.plan_expires_at ? formatMemberDate(row.plan_expires_at) : 'N/A'}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="inline-flex rounded-full border border-amber-400/40 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-100">
+                          {typeof row.days_left === 'number' ? row.days_left : '-'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-xs">{row.phone || 'N/A'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="mt-5 rounded-2xl border border-[var(--border)] bg-[var(--surface-strong)] px-5 py-4 text-sm text-[var(--text-muted)]">
+              No members are expiring in the next 5 days.
+            </div>
+          )}
         </div>
 
         {/* Pending Approvals Row - Now properly aligned */}

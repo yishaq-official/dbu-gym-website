@@ -62,6 +62,37 @@ final class DashboardController extends BaseController
              GROUP BY ym"
         );
 
+        $expiringSoon = $db->select(
+            "SELECT
+                u.id AS user_id,
+                u.name,
+                u.email,
+                u.phone,
+                mp.member_id,
+                mp.member_type,
+                m.membership_type,
+                m.plan_expires_at,
+                GREATEST(DATEDIFF(DATE(m.plan_expires_at), CURDATE()), 0) AS days_left
+             FROM users u
+             LEFT JOIN member_profiles mp ON mp.user_id = u.id
+             LEFT JOIN memberships m ON m.id = (
+                SELECT m2.id
+                FROM memberships m2
+                WHERE m2.user_id = u.id
+                  AND m2.payment_status = 'paid'
+                  AND m2.plan_expires_at IS NOT NULL
+                ORDER BY m2.plan_expires_at DESC, m2.id DESC
+                LIMIT 1
+             )
+             WHERE u.role = 'member'
+               AND u.account_status = 'active'
+               AND m.plan_expires_at IS NOT NULL
+               AND m.plan_expires_at > NOW()
+               AND m.plan_expires_at <= DATE_ADD(NOW(), INTERVAL 5 DAY)
+             ORDER BY m.plan_expires_at ASC
+             LIMIT 10"
+        );
+
         $labels = [];
         $joined = [];
         $expired = [];
@@ -109,6 +140,20 @@ final class DashboardController extends BaseController
                 'expired' => $expired,
                 'pending' => $pending,
             ],
+            'expiring_soon' => array_map(
+                static fn (array $row): array => [
+                    'user_id' => (int) ($row['user_id'] ?? 0),
+                    'name' => $row['name'] ?? null,
+                    'email' => $row['email'] ?? null,
+                    'phone' => $row['phone'] ?? null,
+                    'member_id' => $row['member_id'] ?? null,
+                    'member_type' => $row['member_type'] ?? null,
+                    'membership_type' => $row['membership_type'] ?? null,
+                    'plan_expires_at' => $row['plan_expires_at'] ?? null,
+                    'days_left' => isset($row['days_left']) ? (int) $row['days_left'] : null,
+                ],
+                is_array($expiringSoon) ? $expiringSoon : []
+            ),
         ], 'Admin dashboard data fetched.');
     }
 }
