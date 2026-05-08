@@ -287,6 +287,38 @@ export async function getAuditLogs(limit = 50) {
   })
 }
 
+export async function getEquipment() {
+  return request('/api/equipment', {
+    method: 'GET',
+  })
+}
+
+export async function getAdminEquipment() {
+  return request('/api/admin/equipment', {
+    method: 'GET',
+  })
+}
+
+export async function createAdminEquipment(payload) {
+  return request('/api/admin/equipment', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function updateAdminEquipment(equipmentId, payload) {
+  return request(`/api/admin/equipment/${equipmentId}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function deleteAdminEquipment(equipmentId) {
+  return request(`/api/admin/equipment/${equipmentId}`, {
+    method: 'DELETE',
+  })
+}
+
 export async function uploadSystemLogo(file) {
   const formData = new FormData()
   formData.append('logo', file)

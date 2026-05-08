@@ -8,6 +8,7 @@ const navLinks = [
   { to: '/admin/approvals', label: 'Approvals' },
   { to: '/admin/approvals/history', label: 'Approval Log' },
   { to: '/admin/activity', label: 'Activity' },
+  { to: '/admin/equipment', label: 'Equipment' },
   { to: '/admin/settings', label: 'Settings' },
 ]
 

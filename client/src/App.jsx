@@ -16,6 +16,7 @@ import AdminDashboard from './pages/admin/Dashboard'
 import Approvals from './pages/admin/Approvals'
 import ApprovalHistory from './pages/admin/ApprovalHistory'
 import AdminActivity from './pages/admin/Activity'
+import AdminEquipment from './pages/admin/Equipment'
 import AdminProfile from './pages/admin/Profile'
 import AdminSettings from './pages/admin/Settings'
 
@@ -95,6 +96,7 @@ export default function App() {
         <Route path="/admin/approvals" element={<Approvals />} />
         <Route path="/admin/approvals/history" element={<ApprovalHistory />} />
         <Route path="/admin/activity" element={<AdminActivity />} />
+        <Route path="/admin/equipment" element={<AdminEquipment />} />
         <Route path="/admin/profile" element={<AdminProfile />} />
         <Route path="/admin/settings" element={<AdminSettings />} />
       </Route>

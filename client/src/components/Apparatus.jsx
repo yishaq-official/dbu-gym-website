@@ -1,3 +1,6 @@
+import { useEffect, useState } from 'react'
+import { getEquipment } from '../lib/api'
+
 function ApparatusIcon({ children }) {
   return (
     <svg
@@ -91,7 +94,63 @@ const apparatusItems = [
   },
 ]
 
+function iconForEquipment(item) {
+  const value = `${item?.type || ''} ${item?.name || ''}`.toLowerCase()
+
+  if (value.includes('cardio') || value.includes('treadmill') || value.includes('rower')) {
+    return apparatusItems[1].icon
+  }
+  if (value.includes('cable')) {
+    return apparatusItems[2].icon
+  }
+  if (value.includes('calisthenics') || value.includes('bodyweight')) {
+    return apparatusItems[3].icon
+  }
+  if (value.includes('combat') || value.includes('boxing')) {
+    return apparatusItems[4].icon
+  }
+  if (value.includes('recovery')) {
+    return apparatusItems[5].icon
+  }
+
+  return apparatusItems[0].icon
+}
+
+function readEquipment(response) {
+  return response?.data?.equipment || response?.equipment || []
+}
+
 export default function Apparatus() {
+  const [equipment, setEquipment] = useState(apparatusItems)
+
+  useEffect(() => {
+    let active = true
+
+    getEquipment()
+      .then((data) => {
+        if (!active) return
+        const loaded = readEquipment(data)
+        if (loaded.length) {
+          setEquipment(
+            loaded.map((item) => ({
+              title: item.name,
+              description: item.description || item.notes || 'Available for member workouts.',
+              type: item.type,
+              status: item.status,
+              icon: iconForEquipment(item),
+            }))
+          )
+        }
+      })
+      .catch(() => {
+        if (active) setEquipment(apparatusItems)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [])
+
   return (
     <section id="apparatus" className="bg-[var(--bg-alt)] py-20">
       <div className="mx-auto w-full max-w-6xl px-6 md:px-8">
@@ -107,7 +166,7 @@ export default function Apparatus() {
           </p>
         </div>
         <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {apparatusItems.map((item) => (
+          {equipment.map((item) => (
             <div
               key={item.title}
               className="group relative overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 transition hover:-translate-y-2 hover:border-[var(--accent)] card-sheen"
@@ -121,6 +180,11 @@ export default function Apparatus() {
               <p className="mt-2 text-sm text-[var(--text-muted)]">
                 {item.description}
               </p>
+              {item.type ? (
+                <span className="mt-4 inline-flex rounded-full border border-[var(--border)] px-3 py-1 text-xs text-[var(--text-soft)]">
+                  {item.type}
+                </span>
+              ) : null}
             </div>
           ))}
         </div>
