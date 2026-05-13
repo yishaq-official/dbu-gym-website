@@ -36,7 +36,7 @@ final class AdminService
             'user_id' => $userId,
             'member_id' => $payload['member_id'] ?? null,
             'member_type' => $payload['member_type'] ?? 'university',
-            'membership_type' => $payload['membership_type'] ?? 'monthly',
+            'membership_type' => $payload['membership_type'] ?? 'strength-training',
             'university_id' => $payload['university_id'] ?? null,
             'department' => $payload['department'] ?? null,
             'national_id' => $payload['national_id'] ?? null,

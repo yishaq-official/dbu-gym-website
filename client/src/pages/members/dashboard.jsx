@@ -18,7 +18,7 @@ const member = {
   status: 'Active',
   uniId: 'DBU-2023-1542',
   department: 'Software Engineering',
-  planType: 'Monthly',
+  planType: 'strength-training',
   startDate: 'Mar 01, 2026',
   expiryDate: 'Mar 31, 2026',
   planCost: '800 ETB',

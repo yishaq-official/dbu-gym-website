@@ -8,20 +8,18 @@ import {
   updateAdminMember,
   updateAdminMemberStatus,
 } from '../../lib/api'
-
-const priceMap = {
-  Monthly: 300,
-  '3Months': 800,
-  '6Months': 1500,
-  '1Year': 2500,
-}
+import {
+  membershipPackages,
+  getMembershipPackageLabel,
+  getMembershipPackagePrice,
+} from '../../lib/pricing'
 
 const initialMembers = [
   {
     id: '1',
     fullName: 'Mekdes Alemu',
     membershipId: 'DBU-2026-0001',
-    membershipType: 'Monthly',
+    membershipType: 'strength-training',
     isUniversityMember: true,
     phone: '+251911111111',
     joinDate: '2026-02-01',
@@ -31,7 +29,7 @@ const initialMembers = [
     id: '2',
     fullName: 'Samuel Bekele',
     membershipId: 'EXT-2026-0001',
-    membershipType: '3Months',
+    membershipType: 'cardio-training',
     isUniversityMember: false,
     phone: '+251911222222',
     joinDate: '2026-01-15',
@@ -41,7 +39,7 @@ const initialMembers = [
     id: '3',
     fullName: 'Liya Girma',
     membershipId: 'DBU-2026-0002',
-    membershipType: '6Months',
+    membershipType: 'aerobics-training',
     isUniversityMember: true,
     phone: '+251911333333',
     joinDate: '2025-11-01',
@@ -51,7 +49,7 @@ const initialMembers = [
     id: '4',
     fullName: 'Daniel Tadesse',
     membershipId: 'EXT-2026-0002',
-    membershipType: '1Year',
+    membershipType: 'vip-training',
     isUniversityMember: false,
     phone: '+251911444444',
     joinDate: '2025-06-01',
@@ -61,7 +59,7 @@ const initialMembers = [
     id: '5',
     fullName: 'Sara Kebede',
     membershipId: 'DBU-2026-0003',
-    membershipType: 'Monthly',
+    membershipType: 'strength-training',
     isUniversityMember: true,
     phone: '+251911555555',
     joinDate: '2026-01-05',
@@ -71,7 +69,7 @@ const initialMembers = [
     id: '6',
     fullName: 'Yonatan Fisseha',
     membershipId: 'EXT-2026-0003',
-    membershipType: 'Monthly',
+    membershipType: 'strength-training',
     isUniversityMember: false,
     phone: '+251911666666',
     joinDate: '2025-12-01',
@@ -81,7 +79,7 @@ const initialMembers = [
     id: '7',
     fullName: 'Hana Solomon',
     membershipId: 'DBU-2026-0004',
-    membershipType: '3Months',
+    membershipType: 'cardio-training',
     isUniversityMember: true,
     phone: '+251911777777',
     joinDate: '2026-02-10',
@@ -91,7 +89,7 @@ const initialMembers = [
     id: '8',
     fullName: 'Abel Tesfaye',
     membershipId: 'EXT-2026-0004',
-    membershipType: '6Months',
+    membershipType: 'aerobics-training',
     isUniversityMember: false,
     phone: '+251911888888',
     joinDate: '2025-10-01',
@@ -101,7 +99,7 @@ const initialMembers = [
     id: '9',
     fullName: 'Eden Hailu',
     membershipId: 'DBU-2026-0005',
-    membershipType: '1Year',
+    membershipType: 'vip-training',
     isUniversityMember: true,
     phone: '+251911999999',
     joinDate: '2025-03-01',
@@ -122,8 +120,10 @@ function getStatus(expiryDate) {
 }
 
 function getMembershipCost(member) {
-  const base = priceMap[member.membershipType] || 0
-  return member.isUniversityMember ? base * 0.8 : base
+  return getMembershipPackagePrice(
+    member.membershipType,
+    member.isUniversityMember ? 'university' : 'external'
+  )
 }
 
 function formatMemberDate(value) {
@@ -461,7 +461,7 @@ export default function AdminDashboard() {
     department: '',
     nationalId: '',
     address: '',
-    membershipType: 'Monthly',
+    membershipType: 'strength-training',
     gender: 'Male',
   })
   const [phoneError, setPhoneError] = useState('')
@@ -481,7 +481,7 @@ export default function AdminDashboard() {
       department: '',
       nationalId: '',
       address: '',
-      membershipType: 'Monthly',
+      membershipType: 'strength-training',
       gender: 'Male',
     })
     setMemberType('university')
@@ -709,15 +709,14 @@ export default function AdminDashboard() {
       department: member.department || '',
       nationalId: member.nationalId || '',
       address: member.address || '',
-      membershipType: member.membershipType || 'Monthly',
+      membershipType: member.membershipType || 'strength-training',
       gender: member.gender || 'Male',
     })
     setShowModal(true)
   }
 
   const modalCost = useMemo(() => {
-    const base = priceMap[form.membershipType] || 0
-    return memberType === 'university' ? base * 0.8 : base
+    return getMembershipPackagePrice(form.membershipType, memberType)
   }, [form.membershipType, memberType])
 
   const handleToggleTheme = () => {
@@ -872,7 +871,9 @@ export default function AdminDashboard() {
                     <tr key={row.user_id} className="bg-[var(--surface)]">
                       <td className="px-4 py-3 font-medium">{row.name || 'Unknown'}</td>
                       <td className="px-4 py-3 font-mono text-xs">{row.member_id || 'N/A'}</td>
-                      <td className="px-4 py-3 text-xs">{row.membership_type || 'N/A'}</td>
+                      <td className="px-4 py-3 text-xs">
+                        {row.membership_type ? getMembershipPackageLabel(row.membership_type) : 'N/A'}
+                      </td>
                       <td className="px-4 py-3 text-xs">
                         {row.plan_expires_at ? formatMemberDate(row.plan_expires_at) : 'N/A'}
                       </td>
@@ -1052,7 +1053,7 @@ export default function AdminDashboard() {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-xs">{member.phone}</td>
-                      <td className="px-4 py-3 text-xs">{member.membershipType}</td>
+                      <td className="px-4 py-3 text-xs">{getMembershipPackageLabel(member.membershipType)}</td>
                       <td className="px-4 py-3 text-xs">{member.expiryDate}</td>
                       <td className="px-4 py-3">
                         <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${member.badge}`}>
@@ -1349,10 +1350,11 @@ export default function AdminDashboard() {
                     onChange={(event) => setForm((prev) => ({ ...prev, membershipType: event.target.value }))}
                     className="mt-2 w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3 py-2.5 text-sm transition-all duration-200 focus:border-[var(--accent)] focus:outline-none"
                   >
-                    <option value="Monthly">📅 Monthly - 300 ETB</option>
-                    <option value="3Months">📅 3 Months - 800 ETB</option>
-                    <option value="6Months">📅 6 Months - 1500 ETB</option>
-                    <option value="1Year">📅 1 Year - 2500 ETB</option>
+                    {membershipPackages.map((plan) => (
+                      <option key={plan.key} value={plan.key}>
+                        {plan.label} - {getMembershipPackagePrice(plan.key, memberType)} ETB
+                      </option>
+                    ))}
                   </select>
                 </label>
                 <label className="text-sm text-[var(--text-muted)]">

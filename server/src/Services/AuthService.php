@@ -58,20 +58,18 @@ final class AuthService implements AuthServiceInterface
             $memberTypeRaw = strtolower((string) ($payload['member_type'] ?? 'university'));
             $memberType = in_array($memberTypeRaw, ['university', 'external'], true) ? $memberTypeRaw : 'university';
 
-            $membershipType = strtolower((string) ($payload['membership_type'] ?? 'monthly'));
+            $membershipType = strtolower((string) ($payload['membership_type'] ?? 'strength-training'));
             $membershipType = str_replace([' ', '_'], '-', trim($membershipType));
             $membershipType = match ($membershipType) {
                 'strengthtraining', 'strengthtrainingdubbell', 'strength' => 'strength-training',
                 'cardiotraining', 'cardio' => 'cardio-training',
                 'aerobicstraining', 'aerobics' => 'aerobics-training',
                 'viptraining', 'vip' => 'vip-training',
-                '3month' => '3months',
-                'yearly', 'annual' => '1year',
                 default => $membershipType,
             };
-            $allowedPlans = ['strength-training', 'cardio-training', 'aerobics-training', 'vip-training', 'monthly', '3months', '6months', '1year'];
+            $allowedPlans = ['strength-training', 'cardio-training', 'aerobics-training', 'vip-training'];
             if (!in_array($membershipType, $allowedPlans, true)) {
-                $membershipType = 'monthly';
+                $membershipType = 'strength-training';
             }
 
             $planCost = $this->resolvePlanCost($membershipType, $memberType);
@@ -487,13 +485,9 @@ final class AuthService implements AuthServiceInterface
             'cardio-training' => 500.0,
             'aerobics-training' => 500.0,
             'vip-training' => 1000.0,
-            'monthly' => 300.0,
-            '3months' => 800.0,
-            '6months' => 1500.0,
-            '1year' => 2500.0,
         ];
 
-        $base = $prices[$membershipType] ?? 300.0;
+        $base = $prices[$membershipType] ?? 400.0;
 
         return $memberType === 'university' ? round($base * 0.8, 2) : $base;
     }

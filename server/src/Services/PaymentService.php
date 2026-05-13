@@ -209,7 +209,7 @@ final class PaymentService implements PaymentServiceInterface
 
         $membership = $this->memberships->markPaymentPaid(
             (int) $membership['id'],
-            (string) ($registrationPayload['membership_type'] ?? ($membership['membership_type'] ?? 'monthly'))
+            (string) ($registrationPayload['membership_type'] ?? ($membership['membership_type'] ?? 'strength-training'))
         );
 
         $this->markSuccess($txRef, $gatewayResponse);
@@ -247,13 +247,9 @@ final class PaymentService implements PaymentServiceInterface
             'cardio-training' => 500.0,
             'aerobics-training' => 500.0,
             'vip-training' => 1000.0,
-            'monthly' => 300.0,
-            '3months' => 800.0,
-            '6months' => 1500.0,
-            '1year' => 2500.0,
         ];
 
-        $base = $prices[$membershipType] ?? 300.0;
+        $base = $prices[$membershipType] ?? 400.0;
         return $memberType === 'university' ? round($base * 0.8, 2) : $base;
     }
 

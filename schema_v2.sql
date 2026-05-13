@@ -114,7 +114,7 @@ CREATE TABLE `member_profiles` (
   `member_id` VARCHAR(50) NOT NULL,
   `member_type` ENUM('university','external') NOT NULL,
   `gender` ENUM('male','female','other') NULL,
-  `membership_type` ENUM('monthly','3months','6months','1year') NULL,
+  `membership_type` ENUM('strength-training','cardio-training','aerobics-training','vip-training') NULL,
   `membership_expiry_date` DATE NULL,
   `university_id` VARCHAR(50) NULL,
   `department` VARCHAR(100) NULL,
@@ -138,7 +138,7 @@ CREATE TABLE `member_profiles` (
 CREATE TABLE `memberships` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   `user_id` BIGINT UNSIGNED NOT NULL,
-  `membership_type` ENUM('monthly','3months','6months','1year') NOT NULL,
+  `membership_type` ENUM('strength-training','cardio-training','aerobics-training','vip-training') NOT NULL,
   `plan_cost` DECIMAL(12,2) NOT NULL,
   `currency` CHAR(3) NOT NULL DEFAULT 'ETB',
   `membership_status` ENUM('pending','approved','active','expired','rejected','cancelled') NOT NULL DEFAULT 'pending',

@@ -67,9 +67,7 @@ final class MembershipService
     private function durationMonths(string $membershipType): int
     {
         return match (strtolower($membershipType)) {
-            '3months' => 3,
-            '6months' => 6,
-            '1year' => 12,
+            'strength-training', 'cardio-training', 'aerobics-training', 'vip-training' => 1,
             default => 1,
         };
     }

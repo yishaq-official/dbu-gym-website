@@ -91,14 +91,6 @@ export const normalizeMembershipPackageKey = (value) => {
     viptraining: 'vip-training',
     vip: 'vip-training',
     'vip-training': 'vip-training',
-    monthly: 'monthly',
-    '3month': '3months',
-    '3months': '3months',
-    '6month': '6months',
-    '6months': '6months',
-    '1year': '1year',
-    yearly: '1year',
-    annual: '1year',
   }[normalized] || ''
 }
 
@@ -107,8 +99,4 @@ export const packagePricing = {
   'cardio-training': { university: 500, external: 700 },
   'aerobics-training': { university: 500, external: 700 },
   'vip-training': { university: 1000, external: 2000 },
-  monthly: { university: 240, external: 300 },
-  '3months': { university: 640, external: 800 },
-  '6months': { university: 1200, external: 1500 },
-  '1year': { university: 2000, external: 2500 },
 }

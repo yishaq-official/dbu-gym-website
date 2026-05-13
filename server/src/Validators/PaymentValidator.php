@@ -47,10 +47,6 @@ final class PaymentValidator extends BaseValidator
             'cardiotraining', 'cardio' => 'cardio-training',
             'aerobicstraining', 'aerobics' => 'aerobics-training',
             'viptraining', 'vip' => 'vip-training',
-            'monthly' => 'monthly',
-            '3month', '3months' => '3months',
-            '6month', '6months' => '6months',
-            '1year', 'yearly', 'annual' => '1year',
             default => '',
         };
     }
