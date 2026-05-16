@@ -18,7 +18,7 @@ export default function Pricing() {
 
         <div className="mt-10 rounded-2xl border border-[var(--accent)] bg-[var(--surface)] px-6 py-5 text-sm text-[var(--text-muted)] glow-ring">
           <span className="font-semibold text-[var(--text)]">Inside university</span>{' '}
-          users enjoy reduced internal pricing. External users pay standard public rates.
+          users pay the listed internal price. External users pay the listed public price.
         </div>
 
         <div className="mt-10 grid gap-6 lg:grid-cols-4">

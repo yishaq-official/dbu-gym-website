@@ -58,3 +58,22 @@ ALTER TABLE `memberships`
     'aerobics-training',
     'vip-training'
   ) NOT NULL;
+
+-- Step 4: fix stored membership costs to the current fixed internal/external rates.
+UPDATE `memberships` m
+JOIN `member_profiles` mp ON mp.`user_id` = m.`user_id`
+SET m.`plan_cost` = CASE
+  WHEN m.`membership_type` = 'strength-training' AND mp.`member_type` = 'external' THEN 600.00
+  WHEN m.`membership_type` = 'strength-training' THEN 400.00
+  WHEN m.`membership_type` = 'cardio-training' AND mp.`member_type` = 'external' THEN 700.00
+  WHEN m.`membership_type` = 'cardio-training' THEN 500.00
+  WHEN m.`membership_type` = 'aerobics-training' AND mp.`member_type` = 'external' THEN 700.00
+  WHEN m.`membership_type` = 'aerobics-training' THEN 500.00
+  WHEN m.`membership_type` = 'vip-training' AND mp.`member_type` = 'external' THEN 2000.00
+  WHEN m.`membership_type` = 'vip-training' THEN 1000.00
+  ELSE m.`plan_cost`
+END;
+
+UPDATE `payment_transactions` pt
+JOIN `memberships` m ON m.`id` = pt.`membership_id`
+SET pt.`amount` = m.`plan_cost`;

@@ -243,14 +243,13 @@ final class PaymentService implements PaymentServiceInterface
     private function resolvePlanCost(string $membershipType, string $memberType): float
     {
         $prices = [
-            'strength-training' => 400.0,
-            'cardio-training' => 500.0,
-            'aerobics-training' => 500.0,
-            'vip-training' => 1000.0,
+            'strength-training' => ['university' => 400.0, 'external' => 600.0],
+            'cardio-training' => ['university' => 500.0, 'external' => 700.0],
+            'aerobics-training' => ['university' => 500.0, 'external' => 700.0],
+            'vip-training' => ['university' => 1000.0, 'external' => 2000.0],
         ];
 
-        $base = $prices[$membershipType] ?? 400.0;
-        return $memberType === 'university' ? round($base * 0.8, 2) : $base;
+        return $prices[$membershipType][$memberType === 'external' ? 'external' : 'university'] ?? 400.0;
     }
 
     private function generateTxRef(): string
