@@ -5,6 +5,13 @@ declare(strict_types=1);
 use Yishaq\Server\Core\AppContext;
 use Yishaq\Server\Core\Application;
 
+header("Content-Security-Policy: default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'");
+header('X-Content-Type-Options: nosniff');
+header('X-Frame-Options: DENY');
+header('Referrer-Policy: strict-origin-when-cross-origin');
+header('Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()');
+header('X-XSS-Protection: 0');
+
 // Basic CORS for local frontend dev (Vite on :5173 + XAMPP backend).
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 $allowedOrigins = [
