@@ -163,6 +163,27 @@ final class Request
         return str_contains($contentType, 'application/json');
     }
 
+    public function ip(): string
+    {
+        $forwardedFor = (string) $this->header('X-Forwarded-For', '');
+        if ($forwardedFor !== '') {
+            $candidates = array_map('trim', explode(',', $forwardedFor));
+            foreach ($candidates as $candidate) {
+                if (filter_var($candidate, FILTER_VALIDATE_IP)) {
+                    return $candidate;
+                }
+            }
+        }
+
+        $realIp = (string) $this->header('X-Real-IP', '');
+        if ($realIp !== '' && filter_var($realIp, FILTER_VALIDATE_IP)) {
+            return $realIp;
+        }
+
+        $remoteAddr = (string) ($this->server['REMOTE_ADDR'] ?? '');
+        return filter_var($remoteAddr, FILTER_VALIDATE_IP) ? $remoteAddr : 'unknown';
+    }
+
     private function extractHeaders(array $server): array
     {
         $headers = [];

@@ -11,21 +11,29 @@ use Yishaq\Server\Core\Exceptions\HttpException;
 use Yishaq\Server\Core\Request;
 use Yishaq\Server\Core\Response;
 use Yishaq\Server\Services\AuthService;
+use Yishaq\Server\Services\RateLimiterService;
 
 final class AuthController extends BaseController
 {
     private AuthServiceInterface $auth;
+    private RateLimiterService $rateLimiter;
 
-    public function __construct(?AuthServiceInterface $auth = null)
+    public function __construct(?AuthServiceInterface $auth = null, ?RateLimiterService $rateLimiter = null)
     {
         $this->auth = $auth ?? new AuthService();
+        $this->rateLimiter = $rateLimiter ?? new RateLimiterService();
     }
 
     public function register(Request $request, Response $response): void
     {
+        $payload = $request->json();
+        $this->rateLimiter->hit('auth_register', $request, 5, 3600, (string) ($payload['email'] ?? ''));
+
         try {
-            $result = $this->auth->register($request->json());
+            $result = $this->auth->register($payload);
             $this->created($response, $result, 'Registration successful.');
+        } catch (HttpException $exception) {
+            throw $exception;
         } catch (RuntimeException $exception) {
             throw new HttpException($exception->getMessage(), 422);
         }
@@ -33,9 +41,14 @@ final class AuthController extends BaseController
 
     public function login(Request $request, Response $response): void
     {
+        $payload = $request->json();
+        $this->rateLimiter->hit('auth_login', $request, 5, 900, (string) ($payload['email'] ?? ''));
+
         try {
-            $result = $this->auth->login($request->json());
+            $result = $this->auth->login($payload);
             $this->ok($response, $result, 'Login successful.');
+        } catch (HttpException $exception) {
+            throw $exception;
         } catch (RuntimeException $exception) {
             throw new HttpException($exception->getMessage(), 401);
         }

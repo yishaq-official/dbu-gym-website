@@ -43,6 +43,13 @@ final class PaymentService implements PaymentServiceInterface
         $isRenewal = !empty($payload['renewal']) || !empty($payload['is_renewal']);
         $existingUser = $email !== '' ? $this->users->findByEmail($email) : null;
 
+        if ($existingUser && !$isRenewal) {
+            throw new ValidationException(
+                ['email' => 'An account with this email already exists. Please log in instead.'],
+                'An account with this email already exists. Please log in instead.'
+            );
+        }
+
         if (!$existingUser || !$isRenewal) {
             $errors = array_merge(
                 $errors,

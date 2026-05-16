@@ -32,6 +32,7 @@ DROP TABLE IF EXISTS `reports`;
 DROP TABLE IF EXISTS `notifications`;
 DROP TABLE IF EXISTS `schedules`;
 DROP TABLE IF EXISTS `equipment`;
+DROP TABLE IF EXISTS `rate_limits`;
 DROP TABLE IF EXISTS `users`;
 
 SET FOREIGN_KEY_CHECKS = 1;
@@ -93,6 +94,20 @@ CREATE TABLE `audit_logs` (
   KEY `audit_logs_created_at_index` (`created_at`),
   CONSTRAINT `audit_logs_user_id_foreign`
     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `rate_limits` (
+  `key_hash` CHAR(64) NOT NULL,
+  `action` VARCHAR(80) NOT NULL,
+  `identifier` CHAR(64) NOT NULL,
+  `window_start` TIMESTAMP NOT NULL,
+  `attempts` INT UNSIGNED NOT NULL DEFAULT 0,
+  `expires_at` TIMESTAMP NOT NULL,
+  `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`key_hash`),
+  KEY `rate_limits_action_identifier_index` (`action`, `identifier`),
+  KEY `rate_limits_expires_at_index` (`expires_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `admins` (

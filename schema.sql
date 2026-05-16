@@ -77,3 +77,18 @@ END;
 UPDATE `payment_transactions` pt
 JOIN `memberships` m ON m.`id` = pt.`membership_id`
 SET pt.`amount` = m.`plan_cost`;
+
+-- Step 5: add API rate-limit storage for login and registration attempts.
+CREATE TABLE IF NOT EXISTS `rate_limits` (
+  `key_hash` CHAR(64) NOT NULL,
+  `action` VARCHAR(80) NOT NULL,
+  `identifier` CHAR(64) NOT NULL,
+  `window_start` TIMESTAMP NOT NULL,
+  `attempts` INT UNSIGNED NOT NULL DEFAULT 0,
+  `expires_at` TIMESTAMP NOT NULL,
+  `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`key_hash`),
+  KEY `rate_limits_action_identifier_index` (`action`, `identifier`),
+  KEY `rate_limits_expires_at_index` (`expires_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
